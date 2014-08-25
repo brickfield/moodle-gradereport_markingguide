@@ -62,7 +62,6 @@ class grade_report_markingguide extends grade_report {
             $criteria = $DB->get_records_sql("select * from {gradingform_guide_criteria}".
                 " where definitionid = ? order by sortorder", array($def->id));
             foreach ($criteria as $crit) {
-                //$markingguidearray[$crit->id][$level->id] = $level;
                 $markingguidearray[$crit->id]['crit_desc'] = $crit->shortname;
             }
         }
