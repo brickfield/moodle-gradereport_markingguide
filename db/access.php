@@ -16,14 +16,14 @@
 
 /**
  *
- * @package    grade_report_rubrics
+ * @package    grade_report_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 $capabilities = array(
 
-    'gradereport/rubrics:view' => array(
+    'gradereport/markingguide:view' => array(
         'riskbitmask' => '',
         'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,

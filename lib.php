@@ -16,14 +16,14 @@
 
 /**
  *
- * @package    grade_report_rubrics
+ * @package    grade_report_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once($CFG->dirroot.'/grade/report/lib.php');
 
-class grade_report_rubrics extends grade_report {
+class grade_report_markingguide extends grade_report {
 
     public $output;
 
@@ -50,56 +50,43 @@ class grade_report_rubrics extends grade_report {
         // Step one, find all enrolled users to course.
 
         $coursecontext = context_course::instance($this->course->id);
-        $users = get_enrolled_users($coursecontext, $withcapability = '', $groupid = 0,
-            $userfields = 'u.id,CONCAT(u.lastname, \' \', u.firstname) AS student,u.firstname,u.*', $orderby = 'u.id');
+        $users = get_enrolled_users($coursecontext, $withcapability = 'mod/assign:submit', $groupid = 0,
+            $userfields = 'u.*', $orderby = 'u.lastname');
         $data = array();
 
-        $rubricarray = array();
+        $markingguidearray = array();
 
-        // Step 2, find any rubrics related to assignment.
+        // Step 2, find any markingguide related to assignment.
         $definitions = $DB->get_records_sql("select * from {grading_definitions} where areaid = ?", array($assignmentid));
         foreach ($definitions as $def) {
-            $criteria = $DB->get_records_sql("select * from {gradingform_rubric_criteria}".
+            $criteria = $DB->get_records_sql("select * from {gradingform_guide_criteria}".
                 " where definitionid = ? order by sortorder", array($def->id));
             foreach ($criteria as $crit) {
-                $levels = $DB->get_records_sql("select * from {gradingform_rubric_levels} where criterionid = ?", array($crit->id));
-                foreach ($levels as $level) {
-                    $rubricarray[$crit->id][$level->id] = $level;
-                    $rubricarray[$crit->id]['crit_desc'] = $crit->description;
-                }
+                //$markingguidearray[$crit->id][$level->id] = $level;
+                $markingguidearray[$crit->id]['crit_desc'] = $crit->shortname;
             }
-        }
-
-        $roleassignments = $DB->get_records('role_assignments', array('contextid' => $coursecontext->id));
-        $rolenames = role_get_names($coursecontext, ROLENAME_ALIAS, true);
-        $userroles = array();
-        foreach ($roleassignments as $role) {
-            $userroles[$role->userid] = $rolenames[$role->roleid];
         }
 
         foreach ($users as $user) {
-            if ($userroles[$user->id] != "Student") {
-                continue;
-            } else {
-                $query = "SELECT grf.id, gd.id as defid, ag.userid, ag.grade, grf.instanceid,".
-                    " grf.criterionid, grf.levelid, grf.remark".
-                    " FROM {assign_grades} ag".
-                    " JOIN {grading_instances} gin".
-                      " ON ag.id = gin.itemid".
-                    " JOIN {grading_definitions} gd".
-                      " ON (gd.id = gin.definitionid )".
-                    " JOIN {gradingform_rubric_fillings} grf".
-                      " ON (grf.instanceid = gin.id)".
-                    " WHERE gin.status = ? and ag.assignment = ? and ag.userid = ?";
+            $fullname = fullname($user); // Get Moodle fullname.
+            $query = "SELECT ggf.id, gd.id as defid, ag.userid, ag.grade, ggf.instanceid,".
+                " ggf.criterionid, ggf.remark, ggf.score".
+                " FROM {assign_grades} ag".
+                " JOIN {grading_instances} gin".
+                  " ON ag.id = gin.itemid".
+                " JOIN {grading_definitions} gd".
+                  " ON (gd.id = gin.definitionid )".
+                " JOIN {gradingform_guide_fillings} ggf".
+                  " ON (ggf.instanceid = gin.id)".
+                " WHERE gin.status = ? and ag.assignment = ? and ag.userid = ?";
 
-                $queryarray = array(1, $assignmentid, $user->id);
-                $userdata = $DB->get_records_sql($query, $queryarray);
-                $data[$user->id] = array($user->student, $userdata);
-            }
+            $queryarray = array(1, $assignmentid, $user->id);
+            $userdata = $DB->get_records_sql($query, $queryarray);
+            $data[$user->id] = array($fullname, $userdata);
         }
 
         if (count($data) == 0) {
-            $output = get_string('err_norecords', 'gradereport_rubrics');
+            $output = get_string('err_norecords', 'gradereport_markingguide');
         } else {
             // Links for download.
 
@@ -107,14 +94,14 @@ class grade_report_rubrics extends grade_report {
                 "displaylevel={$this->displaylevel}&amp;displayremark={$this->displayremark}&amp;format=";
 
             if ((!$this->csv)) {
-                $output = '<ul class="rubrics-actions"><li><a href="'.$linkurl.'csv">'.
-                    get_string('csvdownload', 'gradereport_rubrics').'</a></li>
+                $output = '<ul class="markingguide-actions"><li><a href="'.$linkurl.'csv">'.
+                    get_string('csvdownload', 'gradereport_markingguide').'</a></li>
                     <li><a href="'.$linkurl.'excelcsv">'.
-                    get_string('excelcsvdownload', 'gradereport_rubrics').'</a></li></ul>';
+                    get_string('excelcsvdownload', 'gradereport_markingguide').'</a></li></ul>';
             }
 
             // Put data into table.
-            $output .= $this->display_table($data, $rubricarray);
+            $output .= $this->display_table($data, $markingguidearray);
         }
 
         $this->output = $output;
@@ -123,20 +110,20 @@ class grade_report_rubrics extends grade_report {
         }
     }
 
-    public function display_table($data, $rubricarray) {
+    public function display_table($data, $markingguidearray) {
         global $DB, $CFG;
 
         $csvoutput = "";
         $summaryarray = array();
 
         if (!$this->csv) {
-            $output = html_writer::start_tag('div', array('class' => 'rubrics'));
+            $output = html_writer::start_tag('div', array('class' => 'markingguide'));
             $table = new html_table();
-            $table->head = array(get_string('student', 'gradereport_rubrics'));
-            foreach ($rubricarray as $key => $value) {
-                $table->head[] = $rubricarray[$key]['crit_desc'];
+            $table->head = array(get_string('student', 'gradereport_markingguide'));
+            foreach ($markingguidearray as $key => $value) {
+                $table->head[] = $markingguidearray[$key]['crit_desc'];
             }
-            $table->head[] = get_string('grade', 'gradereport_rubrics');
+            $table->head[] = get_string('grade', 'gradereport_markingguide');
             $table->data = array();
             $table->data[] = new html_table_row();
             $sep = ",";
@@ -151,13 +138,15 @@ class grade_report_rubrics extends grade_report {
                 $line = "\n";
             }
             // Add csv headers.
-            $csvoutput .= $this->csv_quote(strip_tags(get_string('student', 'gradereport_rubrics')), $this->excel).$sep;
-            foreach ($rubricarray as $key => $value) {
-                $csvoutput .= $this->csv_quote(strip_tags($rubricarray[$key]['crit_desc']), $this->excel).$sep;
+            $csvoutput .= $this->csv_quote(strip_tags(get_string('student', 'gradereport_markingguide')), $this->excel).$sep;
+            foreach ($markingguidearray as $key => $value) {
+                $csvoutput .= $this->csv_quote(strip_tags($markingguidearray[$key]['crit_desc']), $this->excel).$sep;
             }
-            $csvoutput .= $this->csv_quote(strip_tags(get_string('grade', 'gradereport_rubrics')), $this->excel).$sep;
+            $csvoutput .= $this->csv_quote(strip_tags(get_string('grade', 'gradereport_markingguide')), $this->excel).$sep;
             $csvoutput .= $line;
         }
+
+        $search = array("\r\n", "\n");
 
         foreach ($data as $values) {
             $row = new html_table_row();
@@ -165,23 +154,20 @@ class grade_report_rubrics extends grade_report {
             $cell->text = $values[0]; // Student name.
             $csvoutput .= $this->csv_quote(strip_tags($cell->text), $this->excel).$sep;
             $row->cells[] = $cell;
-            $thisgrade = get_string('nograde', 'gradereport_rubrics');
+            $thisgrade = get_string('nograde', 'gradereport_markingguide');
             if (count($values[1]) == 0) { // Students with no marks, add fillers.
-                foreach ($rubricarray as $key => $value) {
+                foreach ($markingguidearray as $key => $value) {
                     $cell = new html_table_cell();
-                    $cell->text = get_string('nograde', 'gradereport_rubrics');
+                    $cell->text = get_string('nograde', 'gradereport_markingguide');
                     $row->cells[] = $cell;
                     $csvoutput .= $this->csv_quote(strip_tags($cell->text), $this->excel).$sep;
                 }
             }
             foreach ($values[1] as $value) {
                 $cell = new html_table_cell();
-                if ($this->displaylevel) {
-                    $cell->text = $rubricarray[$value->criterionid][$value->levelid]->definition." - ";
-                }
-                $cell->text .= round($rubricarray[$value->criterionid][$value->levelid]->score, 2);
+                $cell->text .= round($value->score, 2);
                 if ($this->displayremark) {
-                    $cell->text .= " - ".$value->remark;
+                    $cell->text .= " - ".str_replace($search, ' ', $value->remark);
                 }
                 $row->cells[] = $cell;
                 $thisgrade = round($value->grade, 2); // Grade cell.
@@ -190,7 +176,7 @@ class grade_report_rubrics extends grade_report {
                     $summaryarray[$value->criterionid]["sum"] = 0;
                     $summaryarray[$value->criterionid]["count"] = 0;
                 }
-                $summaryarray[$value->criterionid]["sum"] += $rubricarray[$value->criterionid][$value->levelid]->score;
+                $summaryarray[$value->criterionid]["sum"] += $value->score;
                 $summaryarray[$value->criterionid]["count"]++;
 
                 $csvoutput .= $this->csv_quote(strip_tags($cell->text), $this->excel).$sep;
@@ -198,7 +184,7 @@ class grade_report_rubrics extends grade_report {
 
             $cell = new html_table_cell();
             $cell->text = $thisgrade; // Grade cell.
-            if ($thisgrade != get_string('nograde', 'gradereport_rubrics')) {
+            if ($thisgrade != get_string('nograde', 'gradereport_markingguide')) {
                 if (!array_key_exists("grade", $summaryarray)) {
                     $summaryarray["grade"]["sum"] = 0;
                     $summaryarray["grade"]["count"] = 0;
@@ -216,9 +202,9 @@ class grade_report_rubrics extends grade_report {
         if ($this->displaysummary) {
             $row = new html_table_row();
             $cell = new html_table_cell();
-            $cell->text = get_string('summary', 'gradereport_rubrics');
+            $cell->text = get_string('summary', 'gradereport_markingguide');
             $row->cells[] = $cell;
-            $csvoutput .= $this->csv_quote(strip_tags(get_string('summary', 'gradereport_rubrics')), $this->excel).$sep;
+            $csvoutput .= $this->csv_quote(strip_tags(get_string('summary', 'gradereport_markingguide')), $this->excel).$sep;
             foreach ($summaryarray as $sum) {
                 $ave = round($sum["sum"] / $sum["count"], 2);
                 $cell = new html_table_cell();
@@ -259,7 +245,8 @@ class grade_report_rubrics extends grade_report {
         $this->moodle_grades = array();
 
         if ($this->course_grade_item->gradetype == GRADE_TYPE_SCALE) {
-            $pgscale = new grade_scale(array('id' => $CFG->grade_report_rubrics_scale));
+            $config = get_config('grade_report_markingguide');
+            $pgscale = new grade_scale(array('id' => $config->scale));
             $scaleitems = $pgscale->load_items();
             foreach ($this->moodle_students as $st) {
                 if (isset($grades[$st->id])) {

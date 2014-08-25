@@ -16,7 +16,7 @@
 
 /**
  *
- * @package    grade_report_rubrics
+ * @package    grade_report_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -24,7 +24,7 @@
 require_once('../../../config.php');
 require_once($CFG->libdir .'/gradelib.php');
 require_once($CFG->dirroot.'/grade/lib.php');
-require_once($CFG->dirroot.'/grade/report/rubrics/lib.php');
+require_once($CFG->dirroot.'/grade/report/markingguide/lib.php');
 require_once("select_form.php");
 
 $assignmentid = optional_param('assignmentid', 0, PARAM_INT);
@@ -42,28 +42,28 @@ if (!$course = $DB->get_record('course', array('id' => $courseid))) {
 $excel = $format == 'excelcsv';
 $csv = $format == 'csv' || $excel;
 
-$PAGE->set_url(new moodle_url('/grade/report/rubrics/index.php', array('id' => $courseid)));
+$PAGE->set_url(new moodle_url('/grade/report/markingguide/index.php', array('id' => $courseid)));
 
 require_login($courseid);
 $PAGE->set_pagelayout('report');
 
 $context = context_course::instance($course->id);
 
-require_capability('gradereport/rubrics:view', $context);
+require_capability('gradereport/markingguide:view', $context);
 
 // Set up the form.
-$mform = new report_rubrics_select_form(null, array('courseid' => $courseid));
+$mform = new report_markingguide_select_form(null, array('courseid' => $courseid));
 
 // Did we get anything from the form?
 if ($formdata = $mform->get_data()) {
-    // Get the users rubrics.
+    // Get the users markingguide.
     $assignmentid = $formdata->assignmentid;
 }
 
 if (!$csv) {
-    print_grade_page_head($COURSE->id, 'report', 'rubrics',
-        get_string('pluginname', 'gradereport_rubrics') .
-        $OUTPUT->help_icon('pluginname', 'gradereport_rubrics'));
+    print_grade_page_head($COURSE->id, 'report', 'markingguide',
+        get_string('pluginname', 'gradereport_markingguide') .
+        $OUTPUT->help_icon('pluginname', 'gradereport_markingguide'));
 
     // Display the form.
     $mform->display();
@@ -72,7 +72,7 @@ if (!$csv) {
 } else {
     $assignment = $DB->get_record_sql('SELECT name FROM {assign} WHERE id = ? limit 1', array($assignmentid));
     $shortname = format_string($assignment->name, true, array('context' => $context));
-    header('Content-Disposition: attachment; filename=rubrics_report.'.
+    header('Content-Disposition: attachment; filename=markingguide_report.'.
         preg_replace('/[^a-z0-9-]/', '_', core_text::strtolower(strip_tags($shortname))).'.csv');
     // Unicode byte-order mark for Excel.
     if ($excel) {
@@ -85,7 +85,7 @@ if (!$csv) {
 
 $gpr = new grade_plugin_return(array('type' => 'report', 'plugin' => 'grader',
     'courseid' => $courseid)); // Return tracking object.
-$report = new grade_report_rubrics($courseid, $gpr, $context); // Initialise the grader report object.
+$report = new grade_report_markingguide($courseid, $gpr, $context); // Initialise the grader report object.
 $report->assignmentid = $assignmentid;
 $report->format = $format;
 $report->excel = $format == 'excelcsv';

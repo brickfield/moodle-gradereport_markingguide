@@ -16,14 +16,14 @@
 
 /**
  *
- * @package    report_rubrics
+ * @package    report_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once("$CFG->libdir/formslib.php");
 
-class report_rubrics_select_form extends moodleform {
+class report_markingguide_select_form extends moodleform {
 
     public function definition() {
         global $CFG, $DB;
@@ -31,7 +31,7 @@ class report_rubrics_select_form extends moodleform {
         $assignments = $DB->get_records_sql('SELECT {assign}.id AS assignmentid, {assign}.name AS assignment '.
             ' FROM {assign} JOIN {course} ON {course}.id = {assign}.course JOIN {grading_areas} '.
             ' ON {assign}.id = {grading_areas}.id WHERE {assign}.course = ? and {grading_areas}.activemethod = ?',
-            array($this->_customdata['courseid'], 'rubric'));
+            array($this->_customdata['courseid'], 'guide'));
 
         $formarray = array(0 => 'Select');
 
@@ -43,18 +43,18 @@ class report_rubrics_select_form extends moodleform {
 
         // Check for any relevant assignments.
         if (count($assignments) == 0) {
-            $mform->addElement ('html', get_string('err_noassignments', 'gradereport_rubrics'));
+            $mform->addElement ('html', get_string('err_noassignments', 'gradereport_markingguide'));
             return;
         }
 
-        $mform->addElement ('select', 'assignmentid', get_string('selectassignment', 'gradereport_rubrics'), $formarray);
+        $mform->addElement ('select', 'assignmentid', get_string('selectassignment', 'gradereport_markingguide'), $formarray);
         $mform->setType('assignmentid', PARAM_INT);
         $mform->getElement('assignmentid')->setSelected(0);
-        $mform->addElement ('advcheckbox', 'displaylevel', get_string('displaylevel', 'gradereport_rubrics'));
+        $mform->addElement ('advcheckbox', 'displaylevel', get_string('displaylevel', 'gradereport_markingguide'));
         $mform->getElement('displaylevel')->setValue(1);
-        $mform->addElement ('advcheckbox', 'displayremark', get_string('displayremark', 'gradereport_rubrics'));
+        $mform->addElement ('advcheckbox', 'displayremark', get_string('displayremark', 'gradereport_markingguide'));
         $mform->getElement('displayremark')->setValue(1);
-        $mform->addElement ('advcheckbox', 'displaysummary', get_string('displaysummary', 'gradereport_rubrics'));
+        $mform->addElement ('advcheckbox', 'displaysummary', get_string('displaysummary', 'gradereport_markingguide'));
         $mform->getElement('displaysummary')->setValue(1);
         $mform->addElement('hidden', 'id', $this->_customdata['courseid']);
         $mform->setType('id', PARAM_INT);

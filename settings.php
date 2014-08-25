@@ -16,7 +16,7 @@
 
 /**
  *
- * @package    grade_report_rubrics
+ * @package    grade_report_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland 
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -31,10 +31,9 @@ if ($ADMIN->fulltree) {
             $scalesoptions[$obj->id] = $obj->name;
         }
     }
-    $settings->add(new admin_setting_configselect('grade_report_rubrics_scale',
-                                                  get_string('config_scale', 'gradereport_rubrics'),
-                                                  get_string('desc_scale', 'gradereport_rubrics'),
-                                                  0,
-                                                  $scalesoptions));
-
+    $settings->add(new admin_setting_configselect('grade_report_markingguide/scale',
+        get_string('config_scale', 'gradereport_markingguide'),
+        get_string('desc_scale', 'gradereport_markingguide'),
+        0,
+        $scalesoptions));
 }

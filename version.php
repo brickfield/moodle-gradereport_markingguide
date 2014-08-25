@@ -16,11 +16,11 @@
 
 /**
  *
- * @package    grade_report_rubrics
+ * @package    grade_report_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 $plugin->version = 2012122102;
 $plugin->requires = 2011120100; // Moodle 2.2.
-$plugin->component = 'gradereport_rubrics';
+$plugin->component = 'gradereport_markingguide';
