@@ -90,7 +90,7 @@ class grade_report_markingguide extends grade_report {
             // Links for download.
 
             $linkurl = "index.php?id={$this->course->id}&amp;assignmentid={$this->assignmentid}&amp;".
-                "displaylevel={$this->displaylevel}&amp;displayremark={$this->displayremark}&amp;format=";
+                "displayremark={$this->displayremark}&amp;displaysummary={$this->displaysummary}&amp;format=";
 
             if ((!$this->csv)) {
                 $output = '<ul class="markingguide-actions"><li><a href="'.$linkurl.'csv">'.

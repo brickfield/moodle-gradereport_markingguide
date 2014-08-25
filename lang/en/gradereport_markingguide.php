@@ -25,7 +25,6 @@ $string['assignmentidtype'] = 'Select a specific assignment or all to view resul
 $string['config_scale'] = 'A scale to use in report';
 $string['csvdownload'] = 'Download in spreadsheet format (UTF-8 .csv)';
 $string['desc_scale'] = 'This is only an example config.';
-$string['displaylevel'] = 'Display level';
 $string['displayremark'] = 'Display remarks';
 $string['displaysummary'] = 'Display summary';
 $string['err_norecords'] = 'No records found';

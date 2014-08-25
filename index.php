@@ -28,7 +28,6 @@ require_once($CFG->dirroot.'/grade/report/markingguide/lib.php');
 require_once("select_form.php");
 
 $assignmentid = optional_param('assignmentid', 0, PARAM_INT);
-$displaylevel = optional_param('displaylevel', 1, PARAM_INT);
 $displayremark = optional_param('displayremark', 1, PARAM_INT);
 $displaysummary = optional_param('displaysummary', 1, PARAM_INT);
 $format = optional_param('format', '', PARAM_ALPHA);
@@ -90,7 +89,6 @@ $report->assignmentid = $assignmentid;
 $report->format = $format;
 $report->excel = $format == 'excelcsv';
 $report->csv = $format == 'csv' || $report->excel;
-$report->displaylevel = ($displaylevel == 1);
 $report->displayremark = ($displayremark == 1);
 $report->displaysummary = ($displaysummary == 1);
 

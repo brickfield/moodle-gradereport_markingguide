@@ -50,8 +50,6 @@ class report_markingguide_select_form extends moodleform {
         $mform->addElement ('select', 'assignmentid', get_string('selectassignment', 'gradereport_markingguide'), $formarray);
         $mform->setType('assignmentid', PARAM_INT);
         $mform->getElement('assignmentid')->setSelected(0);
-        $mform->addElement ('advcheckbox', 'displaylevel', get_string('displaylevel', 'gradereport_markingguide'));
-        $mform->getElement('displaylevel')->setValue(1);
         $mform->addElement ('advcheckbox', 'displayremark', get_string('displayremark', 'gradereport_markingguide'));
         $mform->getElement('displayremark')->setValue(1);
         $mform->addElement ('advcheckbox', 'displaysummary', get_string('displaysummary', 'gradereport_markingguide'));
