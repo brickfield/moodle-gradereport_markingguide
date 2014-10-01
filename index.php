@@ -41,14 +41,20 @@ if (!$course = $DB->get_record('course', array('id' => $courseid))) {
 $excel = $format == 'excelcsv';
 $csv = $format == 'csv' || $excel;
 
-$PAGE->set_url(new moodle_url('/grade/report/markingguide/index.php', array('id' => $courseid)));
+if (!$csv) {
+    $PAGE->set_url(new moodle_url('/grade/report/markingguide/index.php', array('id' => $courseid)));
+}
 
 require_login($courseid);
-$PAGE->set_pagelayout('report');
+if (!$csv) {
+    $PAGE->set_pagelayout('report');
+}
 
 $context = context_course::instance($course->id);
 
 require_capability('gradereport/markingguide:view', $context);
+
+$assignmentname = '';
 
 // Set up the form.
 $mform = new report_markingguide_select_form(null, array('courseid' => $courseid));
@@ -57,6 +63,12 @@ $mform = new report_markingguide_select_form(null, array('courseid' => $courseid
 if ($formdata = $mform->get_data()) {
     // Get the users markingguide.
     $assignmentid = $formdata->assignmentid;
+}
+
+if ($assignmentid!=0) {
+    $assignment = $DB->get_record_sql('SELECT name FROM {assign} WHERE id = ? limit 1', array($assignmentid));
+//if ($assignmentid!=0) {
+    $assignmentname = format_string($assignment->name, true, array('context' => $context));
 }
 
 if (!$csv) {
@@ -68,18 +80,6 @@ if (!$csv) {
     $mform->display();
 
     grade_regrade_final_grades($courseid); // First make sure we have proper final grades.
-} else {
-    $assignment = $DB->get_record_sql('SELECT name FROM {assign} WHERE id = ? limit 1', array($assignmentid));
-    $shortname = format_string($assignment->name, true, array('context' => $context));
-    header('Content-Disposition: attachment; filename=markingguide_report.'.
-        preg_replace('/[^a-z0-9-]/', '_', core_text::strtolower(strip_tags($shortname))).'.csv');
-    // Unicode byte-order mark for Excel.
-    if ($excel) {
-        header('Content-Type: text/csv; charset=UTF-16LE');
-        print chr(0xFF).chr(0xFE);
-    } else {
-        header('Content-Type: text/csv; charset=UTF-8');
-    }
 }
 
 $gpr = new grade_plugin_return(array('type' => 'report', 'plugin' => 'grader',
@@ -91,12 +91,8 @@ $report->excel = $format == 'excelcsv';
 $report->csv = $format == 'csv' || $report->excel;
 $report->displayremark = ($displayremark == 1);
 $report->displaysummary = ($displaysummary == 1);
+$report->assignmentname = $assignmentname;
 
 $report->show();
-
-if ($report->csv) {
-    echo($report->output);
-    exit;
-}
 
 echo $OUTPUT->footer();

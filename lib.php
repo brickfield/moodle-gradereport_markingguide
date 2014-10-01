@@ -97,61 +97,84 @@ class grade_report_markingguide extends grade_report {
                     get_string('csvdownload', 'gradereport_markingguide').'</a></li>
                     <li><a href="'.$linkurl.'excelcsv">'.
                     get_string('excelcsvdownload', 'gradereport_markingguide').'</a></li></ul>';
-            }
 
-            // Put data into table.
-            $output .= $this->display_table($data, $markingguidearray);
+                // Put data into table.
+                $output .= $this->display_table($data, $markingguidearray);
+            } else {
+                // Put data into array, not string, for csv download.
+                $output = $this->display_table($data, $markingguidearray);
+            }
         }
 
         $this->output = $output;
         if (!$this->csv) {
             echo $output;
+        } else {
+            if ($this->excel) {
+                require_once("$CFG->libdir/excellib.class.php");
+
+                $filename = "marking_{$this->assignmentname}.xls";
+                $downloadfilename = clean_filename($filename);
+                /// Creating a workbook
+                $workbook = new MoodleExcelWorkbook("-");
+                /// Sending HTTP headers
+                $workbook->send($downloadfilename);
+                /// Adding the worksheet
+                $myxls = $workbook->add_worksheet($filename);
+
+                $row = 0;
+                // running through data.
+                foreach ($output as $value) {
+                    $col = 0;
+                    foreach ($value as $newvalue) {
+                        $myxls->write_string($row, $col, $newvalue);
+                        $col++;
+                    }
+                    $row++;
+                }
+
+                $workbook->close();
+                exit;
+            } else {
+                require_once($CFG->libdir .'/csvlib.class.php');
+
+                $filename = "marking_{$this->assignmentname}";
+                $csvexport = new csv_export_writer();
+                $csvexport->set_filename($filename);
+
+                foreach($output as $value) {
+                $csvexport->add_data($value);
+                }
+                $csvexport->download_file();
+
+                exit;
+            }
         }
     }
 
     public function display_table($data, $markingguidearray) {
         global $DB, $CFG;
 
-        $csvoutput = "";
         $summaryarray = array();
+        $csvarray = array();
 
-        if (!$this->csv) {
-            $output = html_writer::start_tag('div', array('class' => 'markingguide'));
-            $table = new html_table();
-            $table->head = array(get_string('student', 'gradereport_markingguide'));
-            foreach ($markingguidearray as $key => $value) {
-                $table->head[] = $markingguidearray[$key]['crit_desc'];
-            }
-            $table->head[] = get_string('grade', 'gradereport_markingguide');
-            $table->data = array();
-            $table->data[] = new html_table_row();
-            $sep = ",";
-            $line = "\n";
-        } else {
-            if ($this->excel) {
-                print chr(0xFF).chr(0xFE);
-                $sep = "\t".chr(0);
-                $line = "\n".chr(0);
-            } else {
-                $sep = ",";
-                $line = "\n";
-            }
-            // Add csv headers.
-            $csvoutput .= $this->csv_quote(strip_tags(get_string('student', 'gradereport_markingguide')), $this->excel).$sep;
-            foreach ($markingguidearray as $key => $value) {
-                $csvoutput .= $this->csv_quote(strip_tags($markingguidearray[$key]['crit_desc']), $this->excel).$sep;
-            }
-            $csvoutput .= $this->csv_quote(strip_tags(get_string('grade', 'gradereport_markingguide')), $this->excel).$sep;
-            $csvoutput .= $line;
+        $output = html_writer::start_tag('div', array('class' => 'markingguide'));
+        $table = new html_table();
+        $table->head = array(get_string('student', 'gradereport_markingguide'));
+        foreach ($markingguidearray as $key => $value) {
+            $table->head[] = $markingguidearray[$key]['crit_desc'];
         }
-
-        $search = array("\r\n", "\n");
+        $table->head[] = get_string('grade', 'gradereport_markingguide');
+        $csvarray[] = $table->head;
+        $table->data = array();
+        $table->data[] = new html_table_row();
 
         foreach ($data as $values) {
+            $csvrow = array();
             $row = new html_table_row();
             $cell = new html_table_cell();
             $cell->text = $values[0]; // Student name.
-            $csvoutput .= $this->csv_quote(strip_tags($cell->text), $this->excel).$sep;
+            $csvrow[] = $values[0];
             $row->cells[] = $cell;
             $thisgrade = get_string('nograde', 'gradereport_markingguide');
             if (count($values[1]) == 0) { // Students with no marks, add fillers.
@@ -159,14 +182,14 @@ class grade_report_markingguide extends grade_report {
                     $cell = new html_table_cell();
                     $cell->text = get_string('nograde', 'gradereport_markingguide');
                     $row->cells[] = $cell;
-                    $csvoutput .= $this->csv_quote(strip_tags($cell->text), $this->excel).$sep;
+                    $csvrow[] = $thisgrade;
                 }
             }
             foreach ($values[1] as $value) {
                 $cell = new html_table_cell();
                 $cell->text .= round($value->score, 2);
                 if ($this->displayremark) {
-                    $cell->text .= " - ".str_replace($search, ' ', $value->remark);
+                    $cell->text .= " - ".$value->remark;
                 }
                 $row->cells[] = $cell;
                 $thisgrade = round($value->grade, 2); // Grade cell.
@@ -178,11 +201,12 @@ class grade_report_markingguide extends grade_report {
                 $summaryarray[$value->criterionid]["sum"] += $value->score;
                 $summaryarray[$value->criterionid]["count"]++;
 
-                $csvoutput .= $this->csv_quote(strip_tags($cell->text), $this->excel).$sep;
+                $csvrow[] = $cell->text;
             }
 
             $cell = new html_table_cell();
             $cell->text = $thisgrade; // Grade cell.
+            $csvrow[] = $cell->text;
             if ($thisgrade != get_string('nograde', 'gradereport_markingguide')) {
                 if (!array_key_exists("grade", $summaryarray)) {
                     $summaryarray["grade"]["sum"] = 0;
@@ -192,9 +216,8 @@ class grade_report_markingguide extends grade_report {
                 $summaryarray["grade"]["count"]++;
             }
             $row->cells[] = $cell;
-            $csvoutput .= $this->csv_quote(strip_tags($thisgrade), $this->excel).$sep;
             $table->data[] = $row;
-            $csvoutput .= $line;
+            $csvarray[] = $csvrow;
         }
 
         // Summary row.
@@ -203,20 +226,20 @@ class grade_report_markingguide extends grade_report {
             $cell = new html_table_cell();
             $cell->text = get_string('summary', 'gradereport_markingguide');
             $row->cells[] = $cell;
-            $csvoutput .= $this->csv_quote(strip_tags(get_string('summary', 'gradereport_markingguide')), $this->excel).$sep;
+            $csvsummaryrow = array(get_string('summary', 'gradereport_markingguide'));
             foreach ($summaryarray as $sum) {
                 $ave = round($sum["sum"] / $sum["count"], 2);
                 $cell = new html_table_cell();
                 $cell->text .= $ave;
-                $csvoutput .= $this->csv_quote(strip_tags($ave), $this->excel).$sep;
                 $row->cells[] = $cell;
+                $csvsummaryrow[] = $cell->text;
             }
             $table->data[] = $row;
-            $csvoutput .= $line;
+            $csvarray[] = $csvsummaryrow;
         }
 
         if ($this->csv) {
-            $output = $csvoutput;
+            $output = $csvarray;
         } else {
             $output .= html_writer::table($table);
             $output .= html_writer::end_tag('div');
