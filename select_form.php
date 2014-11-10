@@ -28,10 +28,13 @@ class report_markingguide_select_form extends moodleform {
     public function definition() {
         global $CFG, $DB;
 
-        $assignments = $DB->get_records_sql('SELECT {assign}.id AS assignmentid, {assign}.name AS assignment '.
-            ' FROM {assign} JOIN {course} ON {course}.id = {assign}.course JOIN {grading_areas} '.
-            ' ON {assign}.id = {grading_areas}.id WHERE {assign}.course = ? and {grading_areas}.activemethod = ?',
-            array($this->_customdata['courseid'], 'guide'));
+        $assignments = $DB->get_records_sql('select cm.id, cm.course, con.id as con_id, con.path, '.
+            ' gra.id as gra_id, ass.id as assignmentid, ass.name as assignment '.
+            ' from {course_modules} cm join {context} con on cm.id=con.instanceid '.
+            ' join {grading_areas} gra on gra.contextid = con.id '.
+            ' join {assign} ass on ass.id = cm.instance '.
+            ' where cm.module = ? and cm.course = ? and gra.activemethod = ?',
+            array(1, $this->_customdata['courseid'], 'guide'));
 
         $formarray = array(0 => 'Select');
 

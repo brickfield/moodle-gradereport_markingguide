@@ -67,7 +67,6 @@ if ($formdata = $mform->get_data()) {
 
 if ($assignmentid!=0) {
     $assignment = $DB->get_record_sql('SELECT name FROM {assign} WHERE id = ? limit 1', array($assignmentid));
-//if ($assignmentid!=0) {
     $assignmentname = format_string($assignment->name, true, array('context' => $context));
 }
 
