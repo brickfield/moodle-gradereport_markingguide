@@ -30,6 +30,7 @@ $string['displaysummary'] = 'Display summary';
 $string['err_norecords'] = 'No records found';
 $string['err_noassignments'] = 'No relevant assignments have been found';
 $string['excelcsvdownload'] = 'Download in Excel-compatible format (.xlsx)';
+$string['feedback'] = 'Feedback';
 $string['grade'] = 'Grade';
 $string['nograde'] = '-';
 $string['pluginname'] = 'Marking Guide report';

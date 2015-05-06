@@ -88,7 +88,14 @@ class grade_report_markingguide extends grade_report {
 
             $queryarray = array(1, $assignmentid, $user->id);
             $userdata = $DB->get_records_sql($query, $queryarray);
-            $data[$user->id] = array($fullname, $userdata);
+
+            $query2 = "SELECT gig.feedback".
+                " FROM {grade_items} git".
+                " JOIN {grade_grades} gig".
+                " ON git.id = gig.itemid".
+                " WHERE git.iteminstance = ? and gig.userid = ?";
+            $feedback = $DB->get_record_sql($query2, array($assignmentid, $user->id));
+            $data[$user->id] = array($fullname, $userdata, $feedback);
         }
 
         if (count($data) == 0) {
@@ -171,6 +178,7 @@ class grade_report_markingguide extends grade_report {
         foreach ($markingguidearray as $key => $value) {
             $table->head[] = $markingguidearray[$key]['crit_desc'];
         }
+        if ($this->displayremark) { $table->head[] = get_string('feedback', 'gradereport_rubrics'); }
         $table->head[] = get_string('grade', 'gradereport_markingguide');
         $csvarray[] = $table->head;
         $table->data = array();
@@ -194,9 +202,11 @@ class grade_report_markingguide extends grade_report {
             }
             foreach ($values[1] as $value) {
                 $cell = new html_table_cell();
-                $cell->text .= round($value->score, 2);
+                $cell->text .= "<div class=\"markingguide_marks\">Mark:&nbsp;".round($value->score, 2)."</div>";
+                $csvtext = round($value->score, 2);
                 if ($this->displayremark) {
-                    $cell->text .= " - ".$value->remark;
+                    $cell->text .= $value->remark;
+                    $csvtext .= " - ".$value->remark;
                 }
                 $row->cells[] = $cell;
                 $thisgrade = round($value->grade, 2); // Grade cell.
@@ -208,7 +218,18 @@ class grade_report_markingguide extends grade_report {
                 $summaryarray[$value->criterionid]["sum"] += $value->score;
                 $summaryarray[$value->criterionid]["count"]++;
 
+                $csvrow[] = $csvtext;
+            }
+
+            if ($this->displayremark) {
+                $cell = new html_table_cell();
+                $cell->text = $values[2]->feedback; // Feedback cell.
+                if (empty($cell->text)) {
+                    $cell->text = get_string('nograde', 'gradereport_markingguide');
+                }
+                $row->cells[] = $cell;
                 $csvrow[] = $cell->text;
+                $summaryarray["feedback"]["sum"] = get_string('feedback', 'gradereport_markingguide');
             }
 
             $cell = new html_table_cell();
@@ -235,9 +256,12 @@ class grade_report_markingguide extends grade_report {
             $row->cells[] = $cell;
             $csvsummaryrow = array(get_string('summary', 'gradereport_markingguide'));
             foreach ($summaryarray as $sum) {
-                $ave = round($sum["sum"] / $sum["count"], 2);
                 $cell = new html_table_cell();
-                $cell->text .= $ave;
+                if ($sum["sum"] == get_string('feedback', 'gradereport_markingguide')) {
+                    $cell->text = " ";
+                } else {
+                    $cell->text = round($sum["sum"] / $sum["count"], 2);
+                }
                 $row->cells[] = $cell;
                 $csvsummaryrow[] = $cell->text;
             }
