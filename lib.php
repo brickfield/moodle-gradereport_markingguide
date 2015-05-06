@@ -178,7 +178,7 @@ class grade_report_markingguide extends grade_report {
         foreach ($markingguidearray as $key => $value) {
             $table->head[] = $markingguidearray[$key]['crit_desc'];
         }
-        if ($this->displayremark) { $table->head[] = get_string('feedback', 'gradereport_rubrics'); }
+        if ($this->displayremark) { $table->head[] = get_string('feedback', 'gradereport_markingguide'); }
         $table->head[] = get_string('grade', 'gradereport_markingguide');
         $csvarray[] = $table->head;
         $table->data = array();
