@@ -95,7 +95,7 @@ class grade_report_markingguide extends grade_report {
                 " ON git.id = gig.itemid".
                 " WHERE git.iteminstance = ? and gig.userid = ?";
             $feedback = $DB->get_record_sql($query2, array($assignmentid, $user->id));
-            $data[$user->id] = array($fullname, $userdata, $feedback);
+            $data[$user->idnumber] = array($fullname, $user->email, $userdata, $feedback);
         }
 
         if (count($data) == 0) {
@@ -104,7 +104,8 @@ class grade_report_markingguide extends grade_report {
             // Links for download.
 
             $linkurl = "index.php?id={$this->course->id}&amp;assignmentid={$this->assignmentid}&amp;".
-                "displayremark={$this->displayremark}&amp;displaysummary={$this->displaysummary}&amp;format=";
+                "displayremark={$this->displayremark}&amp;displaysummary={$this->displaysummary}&amp;".
+                "displayemail={$this->displayemail}&amp;format=";
 
             if ((!$this->csv)) {
                 $output = '<ul class="markingguide-actions"><li><a href="'.$linkurl.'csv">'.
@@ -175,6 +176,10 @@ class grade_report_markingguide extends grade_report {
         $output = html_writer::start_tag('div', array('class' => 'markingguide'));
         $table = new html_table();
         $table->head = array(get_string('student', 'gradereport_markingguide'));
+        if ($this->displayemail) {
+            $table->head[] = get_string('studentid', 'gradereport_markingguide');
+            $table->head[] = get_string('studentemail', 'gradereport_markingguide');
+        }
         foreach ($markingguidearray as $key => $value) {
             $table->head[] = $markingguidearray[$key]['crit_desc'];
         }
@@ -184,15 +189,25 @@ class grade_report_markingguide extends grade_report {
         $table->data = array();
         $table->data[] = new html_table_row();
 
-        foreach ($data as $values) {
+        foreach ($data as $key => $values) {
             $csvrow = array();
             $row = new html_table_row();
             $cell = new html_table_cell();
             $cell->text = $values[0]; // Student name.
             $csvrow[] = $values[0];
             $row->cells[] = $cell;
+            if ($this->displayemail) {
+                $cell = new html_table_cell();
+                $cell->text = $key; // Student id.
+                $row->cells[] = $cell;
+                $csvrow[] = $key;
+                $cell = new html_table_cell();
+                $cell->text = $values[1]; // Student email.
+                $row->cells[] = $cell;
+                $csvrow[] = $values[1];
+            }
             $thisgrade = get_string('nograde', 'gradereport_markingguide');
-            if (count($values[1]) == 0) { // Students with no marks, add fillers.
+            if (count($values[2]) == 0) { // Students with no marks, add fillers.
                 foreach ($markingguidearray as $key => $value) {
                     $cell = new html_table_cell();
                     $cell->text = get_string('nograde', 'gradereport_markingguide');
@@ -200,7 +215,7 @@ class grade_report_markingguide extends grade_report {
                     $csvrow[] = $thisgrade;
                 }
             }
-            foreach ($values[1] as $value) {
+            foreach ($values[2] as $value) {
                 $cell = new html_table_cell();
                 $cell->text .= "<div class=\"markingguide_marks\">Mark:&nbsp;".round($value->score, 2)."</div>";
                 $csvtext = round($value->score, 2);
@@ -223,7 +238,7 @@ class grade_report_markingguide extends grade_report {
 
             if ($this->displayremark) {
                 $cell = new html_table_cell();
-                $cell->text = $values[2]->feedback; // Feedback cell.
+                $cell->text = $values[3]->feedback; // Feedback cell.
                 if (empty($cell->text)) {
                     $cell->text = get_string('nograde', 'gradereport_markingguide');
                 }
@@ -255,6 +270,15 @@ class grade_report_markingguide extends grade_report {
             $cell->text = get_string('summary', 'gradereport_markingguide');
             $row->cells[] = $cell;
             $csvsummaryrow = array(get_string('summary', 'gradereport_markingguide'));
+            if ($this->displayemail) {
+                // Adding placeholder cells
+                $cell = new html_table_cell();
+                $cell->text = " ";
+                $row->cells[] = $cell;
+                $row->cells[] = $cell;
+                $csvsummaryrow[] = $cell->text;
+                $csvsummaryrow[] = $cell->text;
+            }
             foreach ($summaryarray as $sum) {
                 $cell = new html_table_cell();
                 if ($sum["sum"] == get_string('feedback', 'gradereport_markingguide')) {
