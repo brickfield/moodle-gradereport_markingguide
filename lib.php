@@ -238,7 +238,7 @@ class grade_report_markingguide extends grade_report {
 
             if ($this->displayremark) {
                 $cell = new html_table_cell();
-                $cell->text = $values[3]->feedback; // Feedback cell.
+                if (is_object($values[3])) { $cell->text = $values[3]->feedback; } // Feedback cell.
                 if (empty($cell->text)) {
                     $cell->text = get_string('nograde', 'gradereport_markingguide');
                 }
