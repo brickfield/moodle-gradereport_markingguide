@@ -30,6 +30,7 @@ require_once("select_form.php");
 $assignmentid = optional_param('assignmentid', 0, PARAM_INT);
 $displayremark = optional_param('displayremark', 1, PARAM_INT);
 $displaysummary = optional_param('displaysummary', 1, PARAM_INT);
+$displayidnumber = optional_param('displayidnumber', 1, PARAM_INT);
 $displayemail = optional_param('displayemail', 1, PARAM_INT);
 $format = optional_param('format', '', PARAM_ALPHA);
 $courseid = required_param('id', PARAM_INT);// Course id.
@@ -91,6 +92,7 @@ $report->excel = $format == 'excelcsv';
 $report->csv = $format == 'csv' || $report->excel;
 $report->displayremark = ($displayremark == 1);
 $report->displaysummary = ($displaysummary == 1);
+$report->displayidnumber = ($displayidnumber == 1);
 $report->displayemail = ($displayemail == 1);
 $report->assignmentname = $assignmentname;
 
