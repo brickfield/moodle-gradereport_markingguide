@@ -1,4 +1,4 @@
-Marking Guide Grade report for Moodle 2.6, 2.7 and 2.8
+Marking Guide Grade report for Moodle 2.6, 2.7, 2.8, 3.0, 3.1, 3.2 and 3.3
 ------------------------------------------
 
 @copyright 2015 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
