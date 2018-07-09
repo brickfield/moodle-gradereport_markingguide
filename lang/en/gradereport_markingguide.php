@@ -37,6 +37,7 @@ $string['grade'] = 'Grade';
 $string['nograde'] = '-';
 $string['pluginname'] = 'Marking Guide report';
 $string['pluginname_help'] = 'This report displays the Marking Guide grading details per student. Tick or untick options to customise the HTML or downloadable results';
+$string['privacy:metadata'] = 'The Markingguide report only reports on data held elsewhere and does not store any personal data.';
 $string['markingguide:view'] = 'Can view the Marking Guide report';
 $string['selectassignment'] = 'Select assignment';
 $string['student'] = 'Student';

@@ -1,7 +1,7 @@
-Marking Guide Grade report for Moodle 2.6, 2.7, 2.8, 3.0, 3.1, 3.2 and 3.3
+Marking Guide Grade report for Moodle 3.5
 ------------------------------------------
 
-@copyright 2015 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
+@copyright 2018 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
 
 It is a grade report designed to report on assignments graded with marking guide.
 
