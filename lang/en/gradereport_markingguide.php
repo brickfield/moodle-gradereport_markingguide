@@ -42,5 +42,5 @@ $string['markingguide:view'] = 'Can view the Marking Guide report';
 $string['selectassignment'] = 'Select assignment';
 $string['student'] = 'Student';
 $string['studentemail'] = 'Email';
-$string['studentid'] = 'ID';
+$string['studentid'] = 'ID Number';
 $string['summary'] = 'Summary';
