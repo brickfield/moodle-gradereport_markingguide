@@ -102,13 +102,12 @@ class grade_report_markingguide extends grade_report {
             $output = get_string('err_norecords', 'gradereport_markingguide');
         } else {
             // Links for download.
-
             $linkurl = "index.php?id={$this->course->id}&amp;assignmentid={$this->assignmentid}&amp;".
                 "displayremark={$this->displayremark}&amp;displaysummary={$this->displaysummary}&amp;".
                 "displayemail={$this->displayemail}&amp;displayidnumber={$this->displayidnumber}&amp;format=";
 
             if ((!$this->csv)) {
-                $output = '<ul class="markingguide-actions"><li><a href="'.$linkurl.'csv">'.
+                $output = get_string('html_warning', 'gradereport_markingguide') .'<br/>'.'<ul class="markingguide-actions"><li><a href="'.$linkurl.'csv">'.
                     get_string('csvdownload', 'gradereport_markingguide').'</a></li>
                     <li><a href="'.$linkurl.'excelcsv">'.
                     get_string('excelcsvdownload', 'gradereport_markingguide').'</a></li></ul>';
@@ -242,7 +241,7 @@ class grade_report_markingguide extends grade_report {
 
             if ($this->displayremark) {
                 $cell = new html_table_cell();
-                if (is_object($values[3])) { $cell->text = $values[3]->feedback; } // Feedback cell.
+                if (is_object($values[3])) { $cell->text = strip_tags($values[3]->feedback); } // Feedback cell.
                 if (empty($cell->text)) {
                     $cell->text = get_string('nograde', 'gradereport_markingguide');
                 }
