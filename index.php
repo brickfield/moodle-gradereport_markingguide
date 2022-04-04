@@ -36,7 +36,7 @@ $displayemail = optional_param('displayemail', 1, PARAM_INT);
 $format = optional_param('format', '', PARAM_ALPHA);
 $courseid = required_param('id', PARAM_INT);// Course id.
 
-if (!$course = $DB->get_record('course', array('id' => $courseid))) {
+if (!$course = $DB->get_record('course', ['id' => $courseid])) {
     throw new moodle_exception(get_string('ivalidcourseid', 'grade_markingguide'));
 }
 
@@ -45,7 +45,7 @@ $excel = $format == 'excelcsv';
 $csv = $format == 'csv' || $excel;
 
 if (!$csv) {
-    $PAGE->set_url(new moodle_url('/grade/report/markingguide/index.php', array('id' => $courseid)));
+    $PAGE->set_url(new moodle_url('/grade/report/markingguide/index.php', ['id' => $courseid]));
 }
 
 require_login($courseid);
@@ -69,8 +69,8 @@ if ($formdata = $mform->get_data()) {
 }
 
 if ($assignmentid != 0) {
-    $assignment = $DB->get_record_sql('SELECT name FROM {assign} WHERE id = ? limit 1', array($assignmentid));
-    $assignmentname = format_string($assignment->name, true, array('context' => $context));
+    $assignment = $DB->get_record_sql('SELECT name FROM {assign} WHERE id = ? limit 1', [$assignmentid]);
+    $assignmentname = format_string($assignment->name, true, ['context' => $context]);
 }
 
 if (!$csv) {
@@ -84,8 +84,8 @@ if (!$csv) {
     grade_regrade_final_grades($courseid); // First make sure we have proper final grades.
 }
 
-$gpr = new grade_plugin_return(array('type' => 'report', 'plugin' => 'grader',
-    'courseid' => $courseid)); // Return tracking object.
+$gpr = new grade_plugin_return(['type' => 'report', 'plugin' => 'grader',
+    'courseid' => $courseid]); // Return tracking object.
 $report = new grade_report_markingguide($courseid, $gpr, $context); // Initialise the grader report object.
 $report->assignmentid = $assignmentid;
 $report->format = $format;

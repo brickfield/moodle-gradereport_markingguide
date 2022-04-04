@@ -97,13 +97,13 @@ class grade_report_markingguide extends grade_report {
             ' where cm.module = ? and cm.course = ? and cm.instance = ? and gra.activemethod = ?',
             array(1, $this->course->id, $assignmentid, 'guide'));
 
-        $markingguidearray = array();
+        $markingguidearray = [];
 
         // Step 2, find any markingguide related to assignment.
         $definitions = $DB->get_records_sql("select * from {grading_definitions} where areaid = ?", array($area->areaid));
         foreach ($definitions as $def) {
             $criteria = $DB->get_records_sql("select * from {gradingform_guide_criteria}".
-                " where definitionid = ? order by sortorder", array($def->id));
+                " where definitionid = ? order by sortorder", [$def->id]);
             foreach ($criteria as $crit) {
                 $markingguidearray[$crit->id]['crit_desc'] = $crit->shortname;
             }
@@ -122,7 +122,7 @@ class grade_report_markingguide extends grade_report {
                   " ON (ggf.instanceid = gin.id)".
                 " WHERE gin.status = ? and ag.assignment = ? and ag.userid = ?";
 
-            $queryarray = array(1, $assignmentid, $user->id);
+            $queryarray = [1, $assignmentid, $user->id];
             $userdata = $DB->get_records_sql($query, $queryarray);
 
             $query2 = "SELECT gig.id, gig.feedback".
@@ -130,8 +130,8 @@ class grade_report_markingguide extends grade_report {
                 " JOIN {grade_grades} gig".
                 " ON git.id = gig.itemid".
                 " WHERE git.iteminstance = ? and gig.userid = ?";
-            $feedback = $DB->get_records_sql($query2, array($assignmentid, $user->id));
-            $data[$user->id] = array($fullname, $user->email, $userdata, $feedback, $user->idnumber);
+            $feedback = $DB->get_records_sql($query2, [$assignmentid, $user->id]);
+            $data[$user->id] = [$fullname, $user->email, $userdata, $feedback, $user->idnumber];
         }
 
         if (count($data) == 0) {
@@ -213,10 +213,10 @@ class grade_report_markingguide extends grade_report {
     public function display_table($data, $markingguidearray) {
         global $DB, $CFG;
 
-        $summaryarray = array();
-        $csvarray = array();
+        $summaryarray = [];
+        $csvarray = [];
 
-        $output = html_writer::start_tag('div', array('class' => 'markingguide'));
+        $output = html_writer::start_tag('div', ['class' => 'markingguide']);
         $table = new html_table();
         $table->head = array(get_string('student', 'gradereport_markingguide'));
         if ($this->displayidnumber) {
@@ -233,11 +233,11 @@ class grade_report_markingguide extends grade_report {
         }
         $table->head[] = get_string('grade', 'gradereport_markingguide');
         $csvarray[] = $table->head;
-        $table->data = array();
+        $table->data = [];
         $table->data[] = new html_table_row();
 
         foreach ($data as $key => $values) {
-            $csvrow = array();
+            $csvrow = [];
             $row = new html_table_row();
             $cell = new html_table_cell();
             $cell->text = $values[0]; // Student name.
@@ -320,7 +320,7 @@ class grade_report_markingguide extends grade_report {
             $cell = new html_table_cell();
             $cell->text = get_string('summary', 'gradereport_markingguide');
             $row->cells[] = $cell;
-            $csvsummaryrow = array(get_string('summary', 'gradereport_markingguide'));
+            $csvsummaryrow = [get_string('summary', 'gradereport_markingguide')];
             if ($this->displayidnumber) { // Adding placeholder cells.
                 $cell = new html_table_cell();
                 $cell->text = " ";
@@ -355,64 +355,5 @@ class grade_report_markingguide extends grade_report {
         }
 
         return $output;
-    }
-
-    /**
-     * Adds in quotes for csv
-     *
-     * @param mixed $value
-     * @param mixed $excel
-     * @return void
-     */
-    public function csv_quote($value, $excel) {
-        if ($excel) {
-            return core_text::convert('"'.str_replace('"', "'", $value).'"', 'UTF-8', 'UTF-16LE');
-        } else {
-            return '"'.str_replace('"', "'", $value).'"';
-        }
-    }
-
-    /**
-     * Get moodle grades
-     *
-     * @return void
-     */
-    private function get_moodle_grades() {
-        global $DB, $CFG;
-
-        $grades = $DB->get_records('grade_grades', array('itemid' => $this->course_grade_item->id), 'userid', 'userid, finalgrade');
-        if (!is_array($grades)) {
-            $grades = array();
-        }
-
-        $this->moodle_grades = array();
-
-        if ($this->course_grade_item->gradetype == GRADE_TYPE_SCALE) {
-            $config = get_config('grade_report_markingguide');
-            $pgscale = new grade_scale(array('id' => $config->scale));
-            $scaleitems = $pgscale->load_items();
-            foreach ($this->moodle_students as $st) {
-                if (isset($grades[$st->id])) {
-                    $fg = (int)$grades[$st->id]->finalgrade;
-                    if (isset($scaleitems[$fg - 1])) {
-                        $this->moodle_grades[$st->id] = $scaleitems[$fg - 1];
-                    } else {
-                        $this->moodle_grades[$st->id] = null;
-                    }
-                } else {
-                    $this->moodle_grades[$st->id] = null;
-                }
-            }
-        } else {
-            foreach ($this->moodle_students as $st) {
-                if (isset($grades[$st->id])) {
-                    $this->moodle_grades[$st->id] = grade_format_gradevalue($grades[$st->id]->finalgrade,
-                                                                        $this->course_grade_item, true,
-                                                                        $this->course_grade_item->get_displaytype(), null);
-                } else {
-                    $this->moodle_grades[$st->id] = null;
-                }
-            }
-        }
     }
 }
