@@ -17,7 +17,7 @@
 /**
  * Provides extra CSV functionality.
  *
- * @package    gradereport_markingguuide
+ * @package    gradereport_markingguide
  * @copyright  2021 onward Brickfield Education Labs Ltd, https://www.brickfield.ie
  * @author     2021 Karen Holland <karen@brickfieldlabs.ie>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -26,7 +26,9 @@
 namespace gradereport_markingguide;
 use core_text;
 
-
+/**
+ * CSV helper functions
+ */
 class csv {
     /**
      * Adds in quotes for csv
