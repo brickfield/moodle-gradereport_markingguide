@@ -15,12 +15,15 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ *  Marking guide report
  *
- * @package    grade_report_markingguide
+ * @package    gradereport_markingguide
  * @copyright  2015 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+defined('MOODLE_INTERNAL') || die();
+
 
 $plugin->version = 2018070900;
-$plugin->requires = 2018051700; // Moodle 3.5.
+$plugin->requires = 2020061500; // Moodle 3.5.
 $plugin->component = 'gradereport_markingguide';

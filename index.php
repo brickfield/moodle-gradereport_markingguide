@@ -15,8 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Gradebook marking guide report
  *
- * @package    grade_report_markingguide
+ * @package    gradereport_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -36,7 +37,7 @@ $format = optional_param('format', '', PARAM_ALPHA);
 $courseid = required_param('id', PARAM_INT);// Course id.
 
 if (!$course = $DB->get_record('course', array('id' => $courseid))) {
-    print_error('invalidcourseid');
+    throw new moodle_exception(get_string('ivalidcourseid', 'grade_markingguide'));
 }
 
 // CSV format.
@@ -67,7 +68,7 @@ if ($formdata = $mform->get_data()) {
     $assignmentid = $formdata->assignmentid;
 }
 
-if ($assignmentid!=0) {
+if ($assignmentid != 0) {
     $assignment = $DB->get_record_sql('SELECT name FROM {assign} WHERE id = ? limit 1', array($assignmentid));
     $assignmentname = format_string($assignment->name, true, array('context' => $context));
 }

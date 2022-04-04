@@ -15,8 +15,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Lang strings for marking guide report
  *
- * @package    grade_report_markingguide
+ * @package    gradereport_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -45,3 +46,4 @@ $string['studentemail'] = 'Email';
 $string['studentid'] = 'ID Number';
 $string['summary'] = 'Summary';
 $string['html_warning'] = 'Please note - for readability, any feedback content in the downloaded files has its HTML tags removed.';
+$string['invalidcourseid'] = 'Invalid courseID ';

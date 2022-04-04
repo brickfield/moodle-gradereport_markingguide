@@ -2,7 +2,9 @@
     font-weight: bold;
 }
 
-#fitem_id_assignmentid, #fitem_id_displayremark,
-#fitem_id_displaysummary, #fitem_id_displayemail {
-  margin-bottom: 0px;
+#fitem_id_assignmentid,
+#fitem_id_displayremark,
+#fitem_id_displaysummary,
+#fitem_id_displayemail {
+    margin-bottom: 0;
 }
