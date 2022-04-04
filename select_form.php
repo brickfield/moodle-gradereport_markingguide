@@ -15,16 +15,25 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ *  Add a better description
  *
- * @package    report_markingguide
+ * @package    gradereport_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
+defined('MOODLE_INTERNAL') || die();
 require_once("$CFG->libdir/formslib.php");
 
+/**
+ * Generate the selection form for the marking guide
+ */
 class report_markingguide_select_form extends moodleform {
 
+    /**
+     * Define the moodleform and its information
+     *
+     * @return void
+     */
     public function definition() {
         global $CFG, $DB;
 

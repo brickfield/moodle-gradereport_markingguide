@@ -15,29 +15,65 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ *  API functionality for marking guide report
  *
- * @package    grade_report_markingguide
+ * @package    gradereport_markingguide
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot.'/grade/report/lib.php');
 
+/**
+ * API functionality for marking guide report
+ */
 class grade_report_markingguide extends grade_report {
 
+    /**
+     * Holds output value
+     *
+     * @var mixed
+     */
     public $output;
 
+    /**
+     * Initalization for marking guide report
+     *
+     * @param int $courseid
+     * @param object $gpr
+     * @param string $context
+     * @param int|null $page
+     */
     public function __construct($courseid, $gpr, $context, $page=null) {
         parent::__construct($courseid, $gpr, $context, $page);
         $this->course_grade_item = grade_item::fetch_course_item($this->courseid);
     }
 
+    /**
+     * Needed definition for grade_report
+     *
+     * @param array $data
+     * @return void
+     */
     public function process_data($data) {
     }
 
+    /**
+     * Needed definition for grade_report
+     *
+     * @param string $target
+     * @param string $action
+     * @return void
+     */
     public function process_action($target, $action) {
     }
 
+    /**
+     * Gets information and generates grade report
+     *
+     * @return void
+     */
     public function show() {
         global $DB, $CFG;
 
@@ -94,7 +130,7 @@ class grade_report_markingguide extends grade_report {
                 " JOIN {grade_grades} gig".
                 " ON git.id = gig.itemid".
                 " WHERE git.iteminstance = ? and gig.userid = ?";
-            $feedback = $DB->get_record_sql($query2, array($assignmentid, $user->id));
+            $feedback = $DB->get_records_sql($query2, array($assignmentid, $user->id));
             $data[$user->id] = array($fullname, $user->email, $userdata, $feedback, $user->idnumber);
         }
 
@@ -107,7 +143,8 @@ class grade_report_markingguide extends grade_report {
                 "displayemail={$this->displayemail}&amp;displayidnumber={$this->displayidnumber}&amp;format=";
 
             if ((!$this->csv)) {
-                $output = get_string('html_warning', 'gradereport_markingguide') .'<br/>'.'<ul class="markingguide-actions"><li><a href="'.$linkurl.'csv">'.
+                $output = get_string('html_warning', 'gradereport_markingguide') .'<br/>'.
+                    '<ul class="markingguide-actions"><li><a href="'.$linkurl.'csv">'.
                     get_string('csvdownload', 'gradereport_markingguide').'</a></li>
                     <li><a href="'.$linkurl.'excelcsv">'.
                     get_string('excelcsvdownload', 'gradereport_markingguide').'</a></li></ul>';
@@ -129,15 +166,15 @@ class grade_report_markingguide extends grade_report {
 
                 $filename = "marking_{$this->assignmentname}.xls";
                 $downloadfilename = clean_filename($filename);
-                /// Creating a workbook
+                // Creating a workbook.
                 $workbook = new MoodleExcelWorkbook("-");
-                /// Sending HTTP headers
+                // Sending HTTP headers.
                 $workbook->send($downloadfilename);
-                /// Adding the worksheet
+                // Adding the worksheet.
                 $myxls = $workbook->add_worksheet($filename);
 
                 $row = 0;
-                // running through data.
+                // Running through data.
                 foreach ($output as $value) {
                     $col = 0;
                     foreach ($value as $newvalue) {
@@ -156,8 +193,8 @@ class grade_report_markingguide extends grade_report {
                 $csvexport = new csv_export_writer();
                 $csvexport->set_filename($filename);
 
-                foreach($output as $value) {
-                $csvexport->add_data($value);
+                foreach ($output as $value) {
+                    $csvexport->add_data($value);
                 }
                 $csvexport->download_file();
 
@@ -166,6 +203,13 @@ class grade_report_markingguide extends grade_report {
         }
     }
 
+    /**
+     * Displays the table for the grade report
+     *
+     * @param mixed $data
+     * @param mixed $markingguidearray
+     * @return void
+     */
     public function display_table($data, $markingguidearray) {
         global $DB, $CFG;
 
@@ -184,7 +228,9 @@ class grade_report_markingguide extends grade_report {
         foreach ($markingguidearray as $key => $value) {
             $table->head[] = $markingguidearray[$key]['crit_desc'];
         }
-        if ($this->displayremark) { $table->head[] = get_string('feedback', 'gradereport_markingguide'); }
+        if ($this->displayremark) {
+            $table->head[] = get_string('feedback', 'gradereport_markingguide');
+        }
         $table->head[] = get_string('grade', 'gradereport_markingguide');
         $csvarray[] = $table->head;
         $table->data = array();
@@ -241,7 +287,9 @@ class grade_report_markingguide extends grade_report {
 
             if ($this->displayremark) {
                 $cell = new html_table_cell();
-                if (is_object($values[3])) { $cell->text = strip_tags($values[3]->feedback); } // Feedback cell.
+                if (is_object($values[3])) {
+                    $cell->text = strip_tags($values[3]->feedback);
+                } // Feedback cell.
                 if (empty($cell->text)) {
                     $cell->text = get_string('nograde', 'gradereport_markingguide');
                 }
@@ -309,6 +357,13 @@ class grade_report_markingguide extends grade_report {
         return $output;
     }
 
+    /**
+     * Adds in quotes for csv
+     *
+     * @param mixed $value
+     * @param mixed $excel
+     * @return void
+     */
     public function csv_quote($value, $excel) {
         if ($excel) {
             return core_text::convert('"'.str_replace('"', "'", $value).'"', 'UTF-8', 'UTF-16LE');
@@ -317,6 +372,11 @@ class grade_report_markingguide extends grade_report {
         }
     }
 
+    /**
+     * Get moodle grades
+     *
+     * @return void
+     */
     private function get_moodle_grades() {
         global $DB, $CFG;
 
