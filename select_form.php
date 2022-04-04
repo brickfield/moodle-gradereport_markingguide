@@ -45,7 +45,7 @@ class report_markingguide_select_form extends moodleform {
             ' where cm.module = ? and cm.course = ? and gra.activemethod = ?',
             array(1, $this->_customdata['courseid'], 'guide'));
 
-        $formarray = array(0 => 'Select');
+        $formarray = array(0 => 'Select assignment');
 
         foreach ($assignments as $item) {
             $formarray[$item->assignmentid] = $item->assignment;
@@ -59,9 +59,10 @@ class report_markingguide_select_form extends moodleform {
             return;
         }
 
-        $mform->addElement ('select', 'assignmentid', get_string('selectassignment', 'gradereport_markingguide'), $formarray);
+        $mform->addElement('select', 'assignmentid', get_string('selectassignment', 'gradereport_markingguide'), $formarray);
         $mform->setType('assignmentid', PARAM_INT);
         $mform->getElement('assignmentid')->setSelected(0);
+
         $mform->addElement ('advcheckbox', 'displayremark', get_string('displayremark', 'gradereport_markingguide'));
         $mform->getElement('displayremark')->setValue(1);
         $mform->addElement ('advcheckbox', 'displaysummary', get_string('displaysummary', 'gradereport_markingguide'));

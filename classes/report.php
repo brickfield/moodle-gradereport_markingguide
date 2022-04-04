@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of the gradereport markingguide plugin
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,23 +13,30 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+namespace gradereport_markingguide;
 
-/**
- *  API functionality for marking guide report
- *
- * @package    gradereport_markingguide
- * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
+use grade_report;
+use html_writer;
+use html_table;
+use html_table_cell;
+use html_table_row;
+use moodle_url;
+use grade_item;
+use MoodleExcelWorkbook;
+use csv_export_writer;
+use gradereport_markingguide\data;
 
 defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot.'/grade/report/lib.php');
-
 /**
- * API functionality for marking guide report
+ * Provides the grade report for marking guides.
+ *
+ * @package    gradereport_markingguide
+ * @copyright  2021 onward Brickfield Education Labs Ltd, https://www.brickfield.ie
+ * @author     2021 Clayton Darlington <clayton@brickfieldlabs.ie>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class grade_report_markingguide extends grade_report {
-
+class report extends grade_report {
     /**
      * Holds output value
      *
@@ -70,94 +77,72 @@ class grade_report_markingguide extends grade_report {
     }
 
     /**
-     * Gets information and generates grade report
+     * Generate and display the grading report
      *
-     * @return void
+     * @return mixed
      */
     public function show() {
-        global $DB, $CFG;
+        global $CFG;
 
-        $output = "";
         $assignmentid = $this->assignmentid;
         if ($assignmentid == 0) {
-            return($output);
+            return($this->output);
         } // Disabling all assignments option.
 
-        // Step one, find all enrolled users to course.
+        $users = data::get_enrolled($this->courseid);
+        $data = [];
 
-        $coursecontext = context_course::instance($this->course->id);
-        $users = get_enrolled_users($coursecontext, $withcapability = 'mod/assign:submit', $groupid = 0,
-            $userfields = 'u.*', $orderby = 'u.lastname');
-        $data = array();
+        $gradingarea = data::get_grading_areas($assignmentid, $this->courseid);
 
-        // Process relevant grading area id from assignmentid and courseid.
-        $area = $DB->get_record_sql('select gra.id as areaid from {course_modules} cm'.
-            ' join {context} con on cm.id=con.instanceid'.
-            ' join {grading_areas} gra on gra.contextid = con.id'.
-            ' where cm.module = ? and cm.course = ? and cm.instance = ? and gra.activemethod = ?',
-            array(1, $this->course->id, $assignmentid, 'guide'));
-
-        $markingguidearray = array();
-
-        // Step 2, find any markingguide related to assignment.
-        $definitions = $DB->get_records_sql("select * from {grading_definitions} where areaid = ?", array($area->areaid));
-        foreach ($definitions as $def) {
-            $criteria = $DB->get_records_sql("select * from {gradingform_guide_criteria}".
-                " where definitionid = ? order by sortorder", array($def->id));
-            foreach ($criteria as $crit) {
-                $markingguidearray[$crit->id]['crit_desc'] = $crit->shortname;
-            }
-        }
+        $markingguide = data::find_marking_guide($gradingarea);
 
         foreach ($users as $user) {
-            $fullname = fullname($user); // Get Moodle fullname.
-            $query = "SELECT ggf.id, gd.id as defid, ag.userid, ag.grade, ggf.instanceid,".
-                " ggf.criterionid, ggf.remark, ggf.score".
-                " FROM {assign_grades} ag".
-                " JOIN {grading_instances} gin".
-                  " ON ag.id = gin.itemid".
-                " JOIN {grading_definitions} gd".
-                  " ON (gd.id = gin.definitionid )".
-                " JOIN {gradingform_guide_fillings} ggf".
-                  " ON (ggf.instanceid = gin.id)".
-                " WHERE gin.status = ? and ag.assignment = ? and ag.userid = ?";
-
-            $queryarray = array(1, $assignmentid, $user->id);
-            $userdata = $DB->get_records_sql($query, $queryarray);
-
-            $query2 = "SELECT gig.id, gig.feedback".
-                " FROM {grade_items} git".
-                " JOIN {grade_grades} gig".
-                " ON git.id = gig.itemid".
-                " WHERE git.iteminstance = ? and gig.userid = ?";
-            $feedback = $DB->get_records_sql($query2, array($assignmentid, $user->id));
-            $data[$user->id] = array($fullname, $user->email, $userdata, $feedback, $user->idnumber);
+            $userdata = data::populate_user_info($user, $assignmentid, $this->courseid);
+            $data[$user->id] = [$userdata['fullname'], $user->email, $userdata['data'], $userdata['feedback'], $user->idnumber];
         }
 
         if (count($data) == 0) {
             $output = get_string('err_norecords', 'gradereport_markingguide');
         } else {
-            // Links for download.
-            $linkurl = "index.php?id={$this->course->id}&amp;assignmentid={$this->assignmentid}&amp;".
-                "displayremark={$this->displayremark}&amp;displaysummary={$this->displaysummary}&amp;".
-                "displayemail={$this->displayemail}&amp;displayidnumber={$this->displayidnumber}&amp;format=";
+            $csvlink = new moodle_url('/grade/report/markingguide/index.php', [
+                'id' => $this->course->id,
+                'assignmentid' => $this->assignmentid,
+                'displayremark' => $this->displayremark,
+                'displaysummary' => $this->displaysummary,
+                'displayemail' => $this->displayemail,
+                'displayidnumber' => $this->displayidnumber,
+                'format' => 'csv',
+            ]);
 
+            $xlsxlink = new moodle_url('/grade/report/markingguide/index.php', [
+                'id' => $this->course->id,
+                'assignmentid' => $this->assignmentid,
+                'displayremark' => $this->displayremark,
+                'displaysummary' => $this->displaysummary,
+                'displayemail' => $this->displayemail,
+                'displayidnumber' => $this->displayidnumber,
+                'format' => 'excelcsv',
+            ]);
+
+            // Links for download.
             if ((!$this->csv)) {
-                $output = get_string('html_warning', 'gradereport_markingguide') .'<br/>'.
-                    '<ul class="markingguide-actions"><li><a href="'.$linkurl.'csv">'.
-                    get_string('csvdownload', 'gradereport_markingguide').'</a></li>
-                    <li><a href="'.$linkurl.'excelcsv">'.
-                    get_string('excelcsvdownload', 'gradereport_markingguide').'</a></li></ul>';
+                $output = get_string('html_warning', 'gradereport_markingguide');
+                $output .= html_writer::start_tag('ul', ['class' => 'markingguide-actions']);
+                $output .= html_writer::start_tag('li');
+                $output .= html_writer::link($csvlink, get_string('csvdownload', 'gradereport_markingguide'));
+                $output .= html_writer::end_tag('il');
+                $output .= html_writer::start_tag('li');
+                $output .= html_writer::link($xlsxlink, get_string('excelcsvdownload', 'gradereport_markingguide'));
+                $output .= html_writer::end_tag('il');
+                $output .= html_writer::end_tag('ul');
 
                 // Put data into table.
-                $output .= $this->display_table($data, $markingguidearray);
+                $output .= $this->display_report($data, $markingguide);
             } else {
                 // Put data into array, not string, for csv download.
-                $output = $this->display_table($data, $markingguidearray);
+                $output = $this->display_report($data, $markingguide);
             }
         }
-
-        $this->output = $output;
         if (!$this->csv) {
             echo $output;
         } else {
@@ -204,45 +189,46 @@ class grade_report_markingguide extends grade_report {
     }
 
     /**
-     * Displays the table for the grade report
+     * Display the table.
      *
-     * @param mixed $data
-     * @param mixed $markingguidearray
+     * @param array $data
+     * @param array $markingguide
      * @return void
      */
-    public function display_table($data, $markingguidearray) {
-        global $DB, $CFG;
+    private function display_report($data, $markingguide) {
+        $summaryarray = [];
+        $csvarray = [];
 
-        $summaryarray = array();
-        $csvarray = array();
-
-        $output = html_writer::start_tag('div', array('class' => 'markingguide'));
+        $output = html_writer::start_tag('div', ['class' => 'markingguide']);
         $table = new html_table();
-        $table->head = array(get_string('student', 'gradereport_markingguide'));
+
+        $table->head = [get_string('student', 'gradereport_markingguide')];
+        // Add the extra fields if needed.
         if ($this->displayidnumber) {
             $table->head[] = get_string('studentid', 'gradereport_markingguide');
         }
         if ($this->displayemail) {
             $table->head[] = get_string('studentemail', 'gradereport_markingguide');
         }
-        foreach ($markingguidearray as $key => $value) {
-            $table->head[] = $markingguidearray[$key]['crit_desc'];
+        foreach ($markingguide as $key => $value) {
+            $table->head[] = $markingguide[$key]['crit_desc'];
         }
         if ($this->displayremark) {
             $table->head[] = get_string('feedback', 'gradereport_markingguide');
         }
+
         $table->head[] = get_string('grade', 'gradereport_markingguide');
         $csvarray[] = $table->head;
-        $table->data = array();
-        $table->data[] = new html_table_row();
+        $table->data = [];
 
         foreach ($data as $key => $values) {
-            $csvrow = array();
+            $csvrow = [];
             $row = new html_table_row();
             $cell = new html_table_cell();
             $cell->text = $values[0]; // Student name.
             $csvrow[] = $values[0];
             $row->cells[] = $cell;
+
             if ($this->displayidnumber) {
                 $cell = new html_table_cell();
                 $cell->text = $values[4]; // Student ID number.
@@ -256,18 +242,22 @@ class grade_report_markingguide extends grade_report {
                 $csvrow[] = $values[1];
             }
             $thisgrade = get_string('nograde', 'gradereport_markingguide');
+
             if (count($values[2]) == 0) { // Students with no marks, add fillers.
-                foreach ($markingguidearray as $key => $value) {
+                foreach ($markingguide as $key => $value) {
                     $cell = new html_table_cell();
                     $cell->text = get_string('nograde', 'gradereport_markingguide');
                     $row->cells[] = $cell;
                     $csvrow[] = $thisgrade;
                 }
             }
+            // Handle the marking guide criteria grades.
             foreach ($values[2] as $value) {
                 $cell = new html_table_cell();
                 $cell->text .= "<div class=\"markingguide_marks\">Mark:&nbsp;".round($value->score, 2)."</div>";
                 $csvtext = round($value->score, 2);
+
+                // Display the remark if user asks to.
                 if ($this->displayremark) {
                     $cell->text .= $value->remark;
                     $csvtext .= " - ".$value->remark;
@@ -279,6 +269,7 @@ class grade_report_markingguide extends grade_report {
                     $summaryarray[$value->criterionid]["sum"] = 0;
                     $summaryarray[$value->criterionid]["count"] = 0;
                 }
+                // Sum the grade to for the final column.
                 $summaryarray[$value->criterionid]["sum"] += $value->score;
                 $summaryarray[$value->criterionid]["count"]++;
 
@@ -287,6 +278,7 @@ class grade_report_markingguide extends grade_report {
 
             if ($this->displayremark) {
                 $cell = new html_table_cell();
+
                 if (is_object($values[3])) {
                     $cell->text = strip_tags($values[3]->feedback);
                 } // Feedback cell.
@@ -299,8 +291,9 @@ class grade_report_markingguide extends grade_report {
             }
 
             $cell = new html_table_cell();
-            $cell->text = $thisgrade; // Grade cell.
+            $cell->text = $values[3]->str_grade; // Grade for display.
             $csvrow[] = $cell->text;
+
             if ($thisgrade != get_string('nograde', 'gradereport_markingguide')) {
                 if (!array_key_exists("grade", $summaryarray)) {
                     $summaryarray["grade"]["sum"] = 0;
@@ -320,7 +313,8 @@ class grade_report_markingguide extends grade_report {
             $cell = new html_table_cell();
             $cell->text = get_string('summary', 'gradereport_markingguide');
             $row->cells[] = $cell;
-            $csvsummaryrow = array(get_string('summary', 'gradereport_markingguide'));
+            $csvsummaryrow = [get_string('summary', 'gradereport_markingguide')];
+
             if ($this->displayidnumber) { // Adding placeholder cells.
                 $cell = new html_table_cell();
                 $cell->text = " ";
@@ -333,6 +327,7 @@ class grade_report_markingguide extends grade_report {
                 $row->cells[] = $cell;
                 $csvsummaryrow[] = $cell->text;
             }
+
             foreach ($summaryarray as $sum) {
                 $cell = new html_table_cell();
                 if ($sum["sum"] == get_string('feedback', 'gradereport_markingguide')) {
@@ -355,64 +350,5 @@ class grade_report_markingguide extends grade_report {
         }
 
         return $output;
-    }
-
-    /**
-     * Adds in quotes for csv
-     *
-     * @param mixed $value
-     * @param mixed $excel
-     * @return void
-     */
-    public function csv_quote($value, $excel) {
-        if ($excel) {
-            return core_text::convert('"'.str_replace('"', "'", $value).'"', 'UTF-8', 'UTF-16LE');
-        } else {
-            return '"'.str_replace('"', "'", $value).'"';
-        }
-    }
-
-    /**
-     * Get moodle grades
-     *
-     * @return void
-     */
-    private function get_moodle_grades() {
-        global $DB, $CFG;
-
-        $grades = $DB->get_records('grade_grades', array('itemid' => $this->course_grade_item->id), 'userid', 'userid, finalgrade');
-        if (!is_array($grades)) {
-            $grades = array();
-        }
-
-        $this->moodle_grades = array();
-
-        if ($this->course_grade_item->gradetype == GRADE_TYPE_SCALE) {
-            $config = get_config('grade_report_markingguide');
-            $pgscale = new grade_scale(array('id' => $config->scale));
-            $scaleitems = $pgscale->load_items();
-            foreach ($this->moodle_students as $st) {
-                if (isset($grades[$st->id])) {
-                    $fg = (int)$grades[$st->id]->finalgrade;
-                    if (isset($scaleitems[$fg - 1])) {
-                        $this->moodle_grades[$st->id] = $scaleitems[$fg - 1];
-                    } else {
-                        $this->moodle_grades[$st->id] = null;
-                    }
-                } else {
-                    $this->moodle_grades[$st->id] = null;
-                }
-            }
-        } else {
-            foreach ($this->moodle_students as $st) {
-                if (isset($grades[$st->id])) {
-                    $this->moodle_grades[$st->id] = grade_format_gradevalue($grades[$st->id]->finalgrade,
-                                                                        $this->course_grade_item, true,
-                                                                        $this->course_grade_item->get_displaytype(), null);
-                } else {
-                    $this->moodle_grades[$st->id] = null;
-                }
-            }
-        }
     }
 }
