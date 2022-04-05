@@ -125,12 +125,8 @@ class grade_report_markingguide extends grade_report {
             $queryarray = [1, $assignmentid, $user->id];
             $userdata = $DB->get_records_sql($query, $queryarray);
 
-            $query2 = "SELECT gig.id, gig.feedback".
-                " FROM {grade_items} git".
-                " JOIN {grade_grades} gig".
-                " ON git.id = gig.itemid".
-                " WHERE git.iteminstance = ? and gig.userid = ?";
-            $feedback = $DB->get_records_sql($query2, [$assignmentid, $user->id]);
+            $fullgrade = \grade_get_grades($this->course->id, 'mod', 'assign', $assignmentid, [$user->id]);
+            $feedback = $fullgrade->items[0]->grades[$user->id];
             $data[$user->id] = [$fullname, $user->email, $userdata, $feedback, $user->idnumber];
         }
 
