@@ -62,6 +62,8 @@ class report_markingguide_select_form extends moodleform {
         $mform->addElement('select', 'assignmentid', get_string('selectassignment', 'gradereport_markingguide'), $formarray);
         $mform->setType('assignmentid', PARAM_INT);
         $mform->getElement('assignmentid')->setSelected(0);
+        $mform->addElement('header', 'formheader', get_string('formheader', 'gradereport_markingguide'));
+        $mform->setExpanded('formheader', false);
 
         $mform->addElement ('advcheckbox', 'displayremark', get_string('displayremark', 'gradereport_markingguide'));
         $mform->getElement('displayremark')->setValue(1);
@@ -73,6 +75,6 @@ class report_markingguide_select_form extends moodleform {
         $mform->getElement('displayidnumber')->setValue(0);
         $mform->addElement('hidden', 'id', $this->_customdata['courseid']);
         $mform->setType('id', PARAM_INT);
-        $this->add_action_buttons(false, 'Go');
+        $this->add_action_buttons(false, get_string('submit'));
     }
 }

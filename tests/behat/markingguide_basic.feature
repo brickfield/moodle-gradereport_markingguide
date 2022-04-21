@@ -60,5 +60,5 @@ Feature: Selecting an assignment option generates a markingguide report
     And I am on "Course 1" course homepage
     When I navigate to "View > Marking Guide report" in the course gradebook
     And I set the field "Select assignment" to "Test assignment 1 name"
-    And I press "Go"
+    And I press "Submit"
     Then "Student 1" row "Grade" column of "generaltable" table should contain "80"

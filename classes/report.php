@@ -82,7 +82,7 @@ class report extends grade_report {
      * @return mixed
      */
     public function show() {
-        global $CFG;
+        global $CFG, $OUTPUT;
 
         $assignmentid = $this->assignmentid;
         if ($assignmentid == 0) {
@@ -126,13 +126,14 @@ class report extends grade_report {
 
             // Links for download.
             if ((!$this->csv)) {
-                $output = get_string('html_warning', 'gradereport_markingguide');
-                $output .= html_writer::start_tag('ul', ['class' => 'markingguide-actions']);
+                $output = html_writer::start_tag('ul', ['class' => 'markingguide-actions']);
                 $output .= html_writer::start_tag('li');
                 $output .= html_writer::link($csvlink, get_string('csvdownload', 'gradereport_markingguide'));
+                $output .= '&nbsp;' . $OUTPUT->help_icon('download', 'gradereport_markingguide');
                 $output .= html_writer::end_tag('il');
                 $output .= html_writer::start_tag('li');
                 $output .= html_writer::link($xlsxlink, get_string('excelcsvdownload', 'gradereport_markingguide'));
+                $output .= '&nbsp;' . $OUTPUT->help_icon('download', 'gradereport_markingguide');
                 $output .= html_writer::end_tag('il');
                 $output .= html_writer::end_tag('ul');
 
