@@ -26,6 +26,12 @@ use context_course;
  */
 class data {
 
+    /** @var array Defines variables for each gradable activity. */
+    const GRADABLES = [
+        'assign' => ['table' => 'assign_grades', 'field' => 'assignment', 'itemoffset' => 0, 'showfeedback' => 1],
+        'forum'  => ['table' => 'forum_grades', 'field' => 'forum', 'itemoffset' => 1, 'showfeedback' => 0],
+    ];
+
     /**
      * Get all the enrolled users in the course
      *
@@ -41,26 +47,26 @@ class data {
     }
 
     /**
-     * Get the grading areas for an assignment
+     * Get the grading areas for an activity
      *
-     * @param mixed $assignmentid
+     * @param mixed $activityid
      * @param int $courseid
-     * @return array
+     * @return object
      */
-    public static function get_grading_areas($assignmentid, $courseid) {
+    public static function get_grading_areas($activityid, $courseid) {
         global $DB;
 
         $area = $DB->get_record_sql('select gra.id as areaid from {course_modules} cm'.
         ' join {context} con on cm.id=con.instanceid'.
         ' join {grading_areas} gra on gra.contextid = con.id'.
-        ' where cm.module = ? and cm.course = ? and cm.instance = ? and gra.activemethod = ?',
-        [1, $courseid, $assignmentid, 'guide']);
+        ' where cm.course = ? and cm.id = ? and gra.activemethod = ?',
+        [$courseid, $activityid, 'guide']);
 
         return $area;
     }
 
     /**
-     * Return the relevant marking guide assignments
+     * Return the relevant marking guide activities
      *
      * @param object $area
      * @return array
@@ -84,30 +90,39 @@ class data {
      * Generate all the grade data for a user
      *
      * @param object $user
-     * @param int $assignmentid
+     * @param int $activityid
      * @param int $courseid
      * @return array
      */
-    public static function populate_user_info($user, $assignmentid, $courseid) {
+    public static function populate_user_info($user, $activityid, $courseid) {
         global $DB;
         $userdata = [];
         $userdata['fullname'] = fullname($user); // Get Moodle fullname.
-        $query = "SELECT ggf.id, gd.id as defid, ag.userid, ag.grade, ggf.instanceid,".
+
+        // Deal with multiple activities enabled for advanced grading.
+        // Uses an internal const $GRADABLES for mapping relevant table, field and offset values.
+        $activity = get_fast_modinfo($courseid)->cms[$activityid];
+
+        $query = "SELECT ggf.id, gd.id as defid, act.userid, act.grade, ggf.instanceid,".
             " ggf.criterionid, ggf.remark, ggf.score".
-            " FROM {assign_grades} ag".
+            " FROM {" . self::GRADABLES[$activity->modname]['table'] . "} act".
             " JOIN {grading_instances} gin".
-              " ON ag.id = gin.itemid".
+              " ON act.id = gin.itemid".
             " JOIN {grading_definitions} gd".
               " ON (gd.id = gin.definitionid )".
+            " JOIN {grading_areas} area".
+              " ON gd.areaid = area.id".
             " JOIN {gradingform_guide_fillings} ggf".
               " ON (ggf.instanceid = gin.id)".
-            " WHERE gin.status = ? and ag.assignment = ? and ag.userid = ?";
+            " WHERE gin.status = ? and act." . self::GRADABLES[$activity->modname]['field'] . " = ?".
+              " and act.userid = ? and area.contextid = ?";
 
-        $queryarray = [1, $assignmentid, $user->id];
+        $queryarray = [1, $activity->instance, $user->id, $activity->context->id];
         $userdata['data'] = $DB->get_records_sql($query, $queryarray);
 
-        $fullgrade = \grade_get_grades($courseid, 'mod', 'assign', $assignmentid, [$user->id]);
-        $feedback = $fullgrade->items[0]->grades[$user->id];
+        $fullgrade = \grade_get_grades($courseid, 'mod', $activity->modname, $activity->instance, [$user->id]);
+        $offset = self::GRADABLES[$activity->modname]['itemoffset'];
+        $feedback = $fullgrade->items[$offset]->grades[$user->id];
         $userdata['feedback'] = $feedback;
         return $userdata;
     }

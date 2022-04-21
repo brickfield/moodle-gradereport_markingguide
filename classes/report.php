@@ -77,6 +77,15 @@ class report extends grade_report {
     }
 
     /**
+     * Retrieve gradables const.
+     *
+     * @return array
+     */
+    public static function get_gradables() {
+        return data::GRADABLES;
+    }
+
+    /**
      * Generate and display the grading report
      *
      * @return mixed
@@ -84,20 +93,20 @@ class report extends grade_report {
     public function show() {
         global $CFG, $OUTPUT;
 
-        $assignmentid = $this->assignmentid;
-        if ($assignmentid == 0) {
+        $activityid = $this->activityid;
+        if ($activityid == 0) {
             return($this->output);
-        } // Disabling all assignments option.
+        } // Disabling all activities option.
 
         $users = data::get_enrolled($this->courseid);
         $data = [];
 
-        $gradingarea = data::get_grading_areas($assignmentid, $this->courseid);
+        $gradingarea = data::get_grading_areas($activityid, $this->courseid);
 
         $markingguide = data::find_marking_guide($gradingarea);
 
         foreach ($users as $user) {
-            $userdata = data::populate_user_info($user, $assignmentid, $this->courseid);
+            $userdata = data::populate_user_info($user, $activityid, $this->courseid);
             $data[$user->id] = [$userdata['fullname'], $user->email, $userdata['data'], $userdata['feedback'], $user->idnumber];
         }
 
@@ -106,7 +115,7 @@ class report extends grade_report {
         } else {
             $csvlink = new moodle_url('/grade/report/markingguide/index.php', [
                 'id' => $this->course->id,
-                'assignmentid' => $this->assignmentid,
+                'activityid' => $this->activityid,
                 'displayremark' => $this->displayremark,
                 'displaysummary' => $this->displaysummary,
                 'displayemail' => $this->displayemail,
@@ -116,7 +125,7 @@ class report extends grade_report {
 
             $xlsxlink = new moodle_url('/grade/report/markingguide/index.php', [
                 'id' => $this->course->id,
-                'assignmentid' => $this->assignmentid,
+                'activityid' => $this->activityid,
                 'displayremark' => $this->displayremark,
                 'displaysummary' => $this->displaysummary,
                 'displayemail' => $this->displayemail,
@@ -150,7 +159,7 @@ class report extends grade_report {
             if ($this->excel) {
                 require_once("$CFG->libdir/excellib.class.php");
 
-                $filename = "marking_{$this->assignmentname}.xls";
+                $filename = "marking_{$this->activityname}.xls";
                 $downloadfilename = clean_filename($filename);
                 // Creating a workbook.
                 $workbook = new MoodleExcelWorkbook("-");
@@ -175,7 +184,7 @@ class report extends grade_report {
             } else {
                 require_once($CFG->libdir .'/csvlib.class.php');
 
-                $filename = "marking_{$this->assignmentname}";
+                $filename = "marking_{$this->activityname}";
                 $csvexport = new csv_export_writer();
                 $csvexport->set_filename($filename);
 
@@ -214,7 +223,7 @@ class report extends grade_report {
         foreach ($markingguide as $key => $value) {
             $table->head[] = $markingguide[$key]['crit_desc'];
         }
-        if ($this->displayremark) {
+        if ($this->displayremark && $this->displayfeedback) {
             $table->head[] = get_string('feedback', 'gradereport_markingguide');
         }
 
@@ -255,7 +264,8 @@ class report extends grade_report {
             // Handle the marking guide criteria grades.
             foreach ($values[2] as $value) {
                 $cell = new html_table_cell();
-                $cell->text .= "<div class=\"markingguide_marks\">Mark:&nbsp;".round($value->score, 2)."</div>";
+                $critgrade = get_string('criterion_grade', 'gradereport_markingguide', round($value->score, 2));
+                $cell->text .= "<div class=\"markingguide_marks\">" . $critgrade . "</div>";
                 $csvtext = round($value->score, 2);
 
                 // Display the remark if user asks to.
@@ -277,7 +287,7 @@ class report extends grade_report {
                 $csvrow[] = $csvtext;
             }
 
-            if ($this->displayremark) {
+            if ($this->displayremark && $this->displayfeedback) {
                 $cell = new html_table_cell();
 
                 if (is_object($values[3])) {
