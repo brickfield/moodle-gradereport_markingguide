@@ -26,7 +26,7 @@ require_once($CFG->libdir .'/gradelib.php');
 require_once($CFG->dirroot.'/grade/lib.php');
 require_once("select_form.php");
 
-$assignmentid = optional_param('assignmentid', 0, PARAM_INT);
+$activityid = optional_param('activityid', 0, PARAM_INT);
 $displayremark = optional_param('displayremark', 1, PARAM_INT);
 $displaysummary = optional_param('displaysummary', 1, PARAM_INT);
 $displayidnumber = optional_param('displayidnumber', 1, PARAM_INT);
@@ -55,7 +55,7 @@ $context = context_course::instance($course->id);
 
 require_capability('gradereport/markingguide:view', $context);
 
-$assignmentname = '';
+$activityname = '';
 
 // Set up the form.
 $mform = new report_markingguide_select_form(null, array('courseid' => $courseid));
@@ -63,12 +63,15 @@ $mform = new report_markingguide_select_form(null, array('courseid' => $courseid
 // Did we get anything from the form?
 if ($formdata = $mform->get_data()) {
     // Get the users markingguide.
-    $assignmentid = $formdata->assignmentid;
+    $activityid = $formdata->activityid;
 }
 
-if ($assignmentid != 0) {
-    $assignment = $DB->get_record_sql('SELECT name FROM {assign} WHERE id = ? limit 1', [$assignmentid]);
-    $assignmentname = format_string($assignment->name, true, ['context' => $context]);
+if ($activityid != 0) {
+    $cm = get_fast_modinfo($courseid)->cms[$activityid];
+    $activityname = format_string($cm->name, true, ['context' => $context]);
+    // Determine whether or not to display general feedback.
+    $gradables = report::get_gradables();
+    $displayfeedback = $gradables[$cm->modname]['showfeedback'] ?? false;
 }
 
 if (!$csv) {
@@ -85,7 +88,7 @@ if (!$csv) {
 $gpr = new grade_plugin_return(['type' => 'report', 'plugin' => 'grader',
     'courseid' => $courseid]); // Return tracking object.
 $report = new report($courseid, $gpr, $context); // Initialise the grader report object.
-$report->assignmentid = $assignmentid;
+$report->activityid = $activityid;
 $report->format = $format;
 $report->excel = $format == 'excelcsv';
 $report->csv = $format == 'csv' || $report->excel;
@@ -93,7 +96,8 @@ $report->displayremark = ($displayremark == 1);
 $report->displaysummary = ($displaysummary == 1);
 $report->displayidnumber = ($displayidnumber == 1);
 $report->displayemail = ($displayemail == 1);
-$report->assignmentname = $assignmentname;
+$report->activityname = $activityname;
+$report->displayfeedback = $displayfeedback ?? false;
 
 $table = $report->show();
 echo $table;

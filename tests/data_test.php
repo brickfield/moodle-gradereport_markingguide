@@ -68,7 +68,7 @@ class data_test extends advanced_testcase {
         $gradearea = $DB->insert_record('grading_areas', $gradeareadata);
 
         // Find the grade area.
-        $data = data::get_grading_areas($assign->id, $course->id);
+        $data = data::get_grading_areas($cm->id, $course->id);
         $this->assertNotEmpty($data);
     }
 
@@ -96,7 +96,7 @@ class data_test extends advanced_testcase {
         $gradearea = $DB->insert_record('grading_areas', $gradeareadata);
 
         // Find the grade area.
-        $area = data::get_grading_areas($assign->id, $course->id);
+        $area = data::get_grading_areas($cm->id, $course->id);
 
         // Generate and store a grading definition for the area.
         $definition = new \stdClass;
@@ -129,6 +129,8 @@ class data_test extends advanced_testcase {
         $course = $this->getDataGenerator()->create_course();
         $student = $this->getDataGenerator()->create_user();
         $assign = $this->getDataGenerator()->create_module('assign', ['course' => $course]);
+
+        $cm = $DB->get_record('course_modules', ['instance' => $assign->id]);
 
         // Create a grade for the assignment.
         $assignmentgrade = new \stdClass;
@@ -164,7 +166,7 @@ class data_test extends advanced_testcase {
         $gradefilling->score = 90;
         $gradefilling = $DB->insert_record('gradingform_guide_fillings', $gradefilling);
 
-        $data = data::populate_user_info($student, $assign->id, $course->id);
+        $data = data::populate_user_info($student, $cm->id, $course->id);
         $this->assertNotEmpty($data);
     }
 }

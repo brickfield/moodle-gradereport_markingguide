@@ -1,5 +1,5 @@
 @gradereport @gradereport_markingguide
-Feature: Selecting an assignment option generates a markingguide report
+Feature: Selecting an activity option generates a markingguide report
   In order to generate a markingguide report
   As an teacher
   I need to check that the markingguide report is correctly displayed
@@ -59,6 +59,6 @@ Feature: Selecting an assignment option generates a markingguide report
     Given I am logged in as "teacher1"
     And I am on "Course 1" course homepage
     When I navigate to "View > Marking Guide report" in the course gradebook
-    And I set the field "Select assignment" to "Test assignment 1 name"
+    And I set the field "Select activity" to "Test assignment 1 name"
     And I press "Submit"
     Then "Student 1" row "Grade" column of "generaltable" table should contain "80"
