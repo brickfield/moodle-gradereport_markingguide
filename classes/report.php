@@ -159,7 +159,7 @@ class report extends grade_report {
             if ($this->excel) {
                 require_once("$CFG->libdir/excellib.class.php");
 
-                $filename = "marking_{$this->activityname}.xls";
+                $filename = get_string('filename', 'gradereport_markingguide', $this->activityname) . ".xls";
                 $downloadfilename = clean_filename($filename);
                 // Creating a workbook.
                 $workbook = new MoodleExcelWorkbook("-");
@@ -184,7 +184,8 @@ class report extends grade_report {
             } else {
                 require_once($CFG->libdir .'/csvlib.class.php');
 
-                $filename = "marking_{$this->activityname}";
+                $filename = get_string('filename', 'gradereport_markingguide', $this->activityname);
+                $filename = clean_filename($filename);
                 $csvexport = new csv_export_writer();
                 $csvexport->set_filename($filename);
 
