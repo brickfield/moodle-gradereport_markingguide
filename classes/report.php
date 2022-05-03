@@ -222,7 +222,7 @@ class report extends grade_report {
             $table->head[] = get_string('studentemail', 'gradereport_markingguide');
         }
         foreach ($markingguide as $key => $value) {
-            $table->head[] = $markingguide[$key]['crit_desc'];
+            $table->head[] = get_string('criterion_label', 'gradereport_markingguide', (object)$value);
         }
         if ($this->displayremark && $this->displayfeedback) {
             $table->head[] = get_string('feedback', 'gradereport_markingguide');
