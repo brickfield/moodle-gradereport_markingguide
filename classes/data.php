@@ -81,6 +81,8 @@ class data {
                 " where definitionid = ? order by sortorder", [$def->id]);
             foreach ($criteria as $crit) {
                 $markingguidearray[$crit->id]['crit_desc'] = $crit->shortname;
+                // Calculate max score per criterion.
+                $markingguidearray[$crit->id]['max_score'] = round($crit->maxscore, 2);
             }
         }
         return $markingguidearray;
