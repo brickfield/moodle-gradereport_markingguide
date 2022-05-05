@@ -18,12 +18,13 @@
  *  Marking guide report
  *
  * @package    gradereport_markingguide
- * @copyright  2015 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
+ * @copyright  2021 Brickfield Education Labs <https://www.brickfield.ie/> - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
 
-
-$plugin->version = 2018070900;
-$plugin->requires = 2020061500; // Moodle 3.5.
+$plugin->version   = 2021060200;
+$plugin->requires  = 2020061500; // Moodle 3.5.
 $plugin->component = 'gradereport_markingguide';
+$plugin->release   = '1.39.06 (Build 2021060200)';
+$plugin->maturity  = MATURITY_STABLE;
