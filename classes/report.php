@@ -147,10 +147,10 @@ class report extends grade_report {
                 $output .= html_writer::end_tag('ul');
 
                 // Put data into table.
-                $output .= $this->display_report($data, $markingguide);
+                $output .= $this->display_report($data, $markingguide, false);
             } else {
                 // Put data into array, not string, for csv download.
-                $output = $this->display_report($data, $markingguide);
+                $output = $this->display_report($data, $markingguide, true);
             }
         }
         if (!$this->csv) {
@@ -204,9 +204,10 @@ class report extends grade_report {
      *
      * @param array $data
      * @param array $markingguide
+     * @param bool $csv
      * @return void
      */
-    private function display_report($data, $markingguide) {
+    private function display_report($data, $markingguide, $csv) {
         $summaryarray = [];
         $csvarray = [];
 
@@ -222,7 +223,11 @@ class report extends grade_report {
             $table->head[] = get_string('studentemail', 'gradereport_markingguide');
         }
         foreach ($markingguide as $key => $value) {
-            $table->head[] = get_string('criterion_label', 'gradereport_markingguide', (object)$value);
+            if ($csv) {
+                $table->head[] = get_string('criterion_label', 'gradereport_markingguide', (object)$value);
+            } else {
+                $table->head[] = get_string('criterion_label_break', 'gradereport_markingguide', (object)$value);
+            }
         }
         if ($this->displayremark && $this->displayfeedback) {
             $table->head[] = get_string('feedback', 'gradereport_markingguide');
