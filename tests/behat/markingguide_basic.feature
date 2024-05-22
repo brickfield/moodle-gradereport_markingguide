@@ -46,6 +46,7 @@ Feature: Selecting an activity option generates a markingguide report
       | Guide criterion C | Guide C description for students | Guide C description for markers | 40            |
     And I press "Save marking guide and make it ready"
     And I wait "2" seconds
+    And I am on the "Test assignment 1 name" "assign activity" page
     And I go to "Student 1" "Test assignment 1 name" activity advanced grading page
     And I wait "2" seconds
     And I grade by filling the marking guide with:
