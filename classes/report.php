@@ -44,6 +44,39 @@ class report extends grade_report {
      */
     public $output;
 
+    /** @var grade_item Grade item. */
+    public $course_grade_item;
+
+    /** @var int Activity id. */
+    public $activityid;
+
+    /** @var string Activity name. */
+    public $activityname;
+
+    /** @var bool Display remark. */
+    public $displayremark;
+
+    /** @var bool Display summary. */
+    public $displaysummary;
+
+    /** @var bool Display email. */
+    public $displayemail;
+
+    /** @var bool Display id. */
+    public $displayidnumber;
+
+    /** @var bool Display feedback. */
+    public $displayfeedback;
+
+    /** @var bool CSV download. */
+    public $csv;
+
+    /** @var bool Excel download. */
+    public $excel;
+
+    /** @var string Download format. */
+    public $format;
+  
     /**
      * Initalization for marking guide report
      *
