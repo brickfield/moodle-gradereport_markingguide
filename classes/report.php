@@ -45,7 +45,7 @@ class report extends grade_report {
     public $output;
 
     /** @var grade_item Grade item. */
-    public $course_grade_item;
+    public $coursegradeitem;
 
     /** @var int Activity id. */
     public $activityid;
@@ -87,7 +87,7 @@ class report extends grade_report {
      */
     public function __construct($courseid, $gpr, $context, $page=null) {
         parent::__construct($courseid, $gpr, $context, $page);
-        $this->course_grade_item = grade_item::fetch_course_item($this->courseid);
+        $this->coursegradeitem = grade_item::fetch_course_item($this->courseid);
     }
 
     /**
