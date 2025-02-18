@@ -39,9 +39,9 @@ class csv {
      */
     public function csv_quote($value, $excel) {
         if ($excel) {
-            return core_text::convert('"'.str_replace('"', "'", $value).'"', 'UTF-8', 'UTF-16LE');
+            return core_text::convert('"' . str_replace('"', "'", $value) . '"', 'UTF-8', 'UTF-16LE');
         } else {
-            return '"'.str_replace('"', "'", $value).'"';
+            return '"' . str_replace('"', "'", $value) . '"';
         }
     }
 }

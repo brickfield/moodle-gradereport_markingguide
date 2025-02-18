@@ -76,7 +76,7 @@ class report extends grade_report {
 
     /** @var string Download format. */
     public $format;
-  
+
     /**
      * Initalization for marking guide report
      *
