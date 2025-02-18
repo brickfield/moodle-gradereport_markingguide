@@ -40,8 +40,7 @@ class data {
      */
     public static function get_enrolled($courseid) {
         $coursecontext = context_course::instance($courseid);
-        $users = get_enrolled_users($coursecontext, $withcapability = 'mod/assign:submit', $groupid = 0,
-            $userfields = 'u.*', $orderby = 'u.lastname');
+        $users = get_enrolled_users($coursecontext, 'mod/assign:submit', 0, 'u.*', 'u.lastname');
 
         return $users;
     }

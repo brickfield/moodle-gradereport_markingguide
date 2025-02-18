@@ -24,7 +24,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
-
     'gradereport/markingguide:view' => [
         'riskbitmask' => '',
         'captype' => 'read',
@@ -36,5 +35,4 @@ $capabilities = [
             'manager' => CAP_ALLOW
         ]
     ],
-
 ];
