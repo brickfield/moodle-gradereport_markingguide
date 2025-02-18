@@ -205,7 +205,7 @@ class report extends grade_report {
      * @param array $data
      * @param array $markingguide
      * @param bool $csv
-     * @return void
+     * @return array|string
      */
     private function display_report($data, $markingguide, $csv) {
         $summaryarray = [];
@@ -260,7 +260,7 @@ class report extends grade_report {
             $thisgrade = get_string('nograde', 'gradereport_markingguide');
 
             if (count($values[2]) == 0) { // Students with no marks, add fillers.
-                foreach ($markingguide as $key => $value) {
+                foreach ($markingguide as $rkey => $rvalue) {
                     $cell = new html_table_cell();
                     $cell->text = get_string('nograde', 'gradereport_markingguide');
                     $row->cells[] = $cell;
@@ -296,7 +296,7 @@ class report extends grade_report {
             if ($this->displayremark && $this->displayfeedback) {
                 $cell = new html_table_cell();
 
-                if (is_object($values[3])) {
+                if (is_object($values[3]) && (!empty($values[3]->feedback))) {
                     $cell->text = strip_tags($values[3]->feedback);
                 } // Feedback cell.
                 if (empty($cell->text)) {
