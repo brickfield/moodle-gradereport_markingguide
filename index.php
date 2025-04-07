@@ -58,12 +58,17 @@ require_capability('gradereport/markingguide:view', $context);
 $activityname = '';
 
 // Set up the form.
-$mform = new report_markingguide_select_form(null, array('courseid' => $courseid));
+$mform = new report_markingguide_select_form(null, array('courseid' => $courseid, 'activityid' => $activityid));
 
 // Did we get anything from the form?
 if ($formdata = $mform->get_data()) {
     // Get the users markingguide.
     $activityid = $formdata->activityid;
+    $config = get_config('gradereport_markingguide');
+    if (!$csv && !empty($config->displayurlparams)) {
+        $fullurl = new moodle_url('/grade/report/markingguide/index.php', (array)$formdata);
+        redirect($fullurl);
+    }
 }
 
 if ($activityid != 0) {
