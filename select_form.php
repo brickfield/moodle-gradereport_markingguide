@@ -62,6 +62,7 @@ class report_markingguide_select_form extends moodleform {
         $mform->addElement('select', 'activityid', get_string('selectactivity', 'gradereport_markingguide'), $formarray);
         $mform->setType('activityid', PARAM_INT);
         $mform->getElement('activityid')->setSelected(0);
+        $mform->setDefault('activityid', $this->_customdata['activityid']);
         $mform->addElement('header', 'formheader', get_string('formheader', 'gradereport_markingguide'));
         $mform->setExpanded('formheader', false);
 
