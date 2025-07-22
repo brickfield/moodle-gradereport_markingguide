@@ -12,7 +12,7 @@ This supports standardised grading by providing an overview of all grades and st
 2021 Onward [Brickfield Education Labs](https://www.brickfield.ie)
 
 ## Version support
-This plugin has been developed to work on Moodle releases 3.9, 3.11, 4.00, 4.01, 4.02, 4.03, 4.04, and 4.05.
+This plugin has been developed to work on Moodle releases 4.01, 4.04, and 4.05.
 
 ## Funding credits
 Initial funding for this plugin was provided by the National Institute for Digital Learning at Dublin City University.
