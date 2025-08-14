@@ -12,7 +12,7 @@ This supports standardised grading by providing an overview of all grades and st
 2021 Onward [Brickfield Education Labs](https://www.brickfield.ie)
 
 ## Version support
-This plugin has been developed to work on Moodle releases 4.01, 4.04, and 4.05.
+This plugin has been developed to work on Moodle releases 4.1, 4.4, and 4.5.
 
 ## Funding credits
 Initial funding for this plugin was provided by the National Institute for Digital Learning at Dublin City University.
@@ -36,7 +36,7 @@ Further installation instructions can be found on the
 
 ## Usage
 On your course, go to the Grades section.
-You will then view the "Marking guide report" tab within the series of course grade report tab options.
+You will then view the "Marking guide report" tab within the series of course grade report options.
 
 On the Marking guide report, teachers can:
 * Select the activity within the course to report on.
