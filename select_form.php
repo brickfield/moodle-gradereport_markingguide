@@ -44,7 +44,7 @@ class report_markingguide_select_form extends moodleform {
                   WHERE cm.course = ? AND gra.activemethod = ?";
         $activities = $DB->get_records_sql($sql, [$this->_customdata['courseid'], 'guide']);
 
-        $formarray = array(0 => get_string('selectactivity', 'gradereport_markingguide'));
+        $formarray = [0 => get_string('selectactivity', 'gradereport_markingguide')];
 
         foreach ($activities as $item) {
             $cm = get_fast_modinfo($this->_customdata['courseid'])->cms[$item->id];
