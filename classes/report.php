@@ -13,17 +13,13 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 namespace gradereport_markingguide;
 
+use flexible_table;
 use grade_report;
-use html_writer;
-use html_table;
-use html_table_cell;
-use html_table_row;
-use moodle_url;
 use grade_item;
-use MoodleExcelWorkbook;
-use csv_export_writer;
+use moodle_url;
 use gradereport_markingguide\data;
 
 defined('MOODLE_INTERNAL') || die();
@@ -37,13 +33,6 @@ require_once($CFG->dirroot.'/grade/report/lib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class report extends grade_report {
-    /**
-     * Holds output value
-     *
-     * @var mixed
-     */
-    public $output;
-
     /** @var grade_item Grade item. */
     public $coursegradeitem;
 
@@ -62,36 +51,27 @@ class report extends grade_report {
     /** @var bool Display email. */
     public $displayemail;
 
-    /** @var bool Display id. */
+    /** @var bool Display id number. */
     public $displayidnumber;
 
     /** @var bool Display feedback. */
     public $displayfeedback;
 
-    /** @var bool CSV download. */
-    public $csv;
-
-    /** @var bool Excel download. */
-    public $excel;
-
-    /** @var string Download format. */
-    public $format;
-
     /**
-     * Initalization for marking guide report
+     * Initialisation for marking guide report.
      *
      * @param int $courseid
      * @param object $gpr
      * @param string $context
      * @param int|null $page
      */
-    public function __construct($courseid, $gpr, $context, $page=null) {
+    public function __construct($courseid, $gpr, $context, $page = null) {
         parent::__construct($courseid, $gpr, $context, $page);
         $this->coursegradeitem = grade_item::fetch_course_item($this->courseid);
     }
 
     /**
-     * Needed definition for grade_report
+     * Needed definition for grade_report.
      *
      * @param array $data
      * @return void
@@ -100,7 +80,7 @@ class report extends grade_report {
     }
 
     /**
-     * Needed definition for grade_report
+     * Needed definition for grade_report.
      *
      * @param string $target
      * @param string $action
@@ -119,286 +99,236 @@ class report extends grade_report {
     }
 
     /**
-     * Generate and display the grading report
+     * Initialise, configure, and set up the flexible_table instance.
      *
-     * @return mixed
+     * Resolves the full column list - including dynamic marking guide criterion columns -
+     * and calls is_downloading() then setup() before returning. This means is_downloading()
+     * is usable immediately after this call, allowing index.php to suppress page HTML on
+     * download requests before any output is sent.
+     *
+     * In Moodle 5.x, setup() no longer reads the download param from the request.
+     * is_downloading() must be called explicitly with the format string before setup() so
+     * that is_downloading() returns the format correctly when index.php checks it.
+     *
+     * @param string $download Download format string from the request (e.g. 'csv', 'excel').
+     *                         Empty string means no download this request.
+     * @return flexible_table
      */
-    public function show() {
-        global $CFG, $OUTPUT;
+    public function init_table(string $download = ''): flexible_table {
+        global $DB;
 
-        $activityid = $this->activityid;
-        if ($activityid == 0) {
-            return($this->output);
-        } // Disabling all activities option.
+        $columns = ['student'];
+        $headers = [get_string('student', 'gradereport_markingguide')];
 
-        $users = data::get_enrolled($this->courseid);
-        $data = [];
-
-        $gradingarea = data::get_grading_areas($activityid, $this->courseid);
-
-        $markingguide = data::find_marking_guide($gradingarea);
-
-        foreach ($users as $user) {
-            $userdata = data::populate_user_info($user, $activityid, $this->courseid);
-            $data[$user->id] = [$userdata['fullname'], $user->email, $userdata['data'], $userdata['feedback'], $user->idnumber];
+        if ($this->displayidnumber) {
+            $columns[] = 'idnumber';
+            $headers[] = get_string('studentid', 'gradereport_markingguide');
+        }
+        if ($this->displayemail) {
+            $columns[] = 'email';
+            $headers[] = get_string('studentemail', 'gradereport_markingguide');
         }
 
-        if (count($data) == 0) {
-            $output = get_string('err_norecords', 'gradereport_markingguide');
-        } else {
-            $csvlink = new moodle_url('/grade/report/markingguide/index.php', [
-                'id' => $this->course->id,
-                'activityid' => $this->activityid,
-                'displayremark' => $this->displayremark,
-                'displaysummary' => $this->displaysummary,
-                'displayemail' => $this->displayemail,
-                'displayidnumber' => $this->displayidnumber,
-                'format' => 'csv',
-            ]);
+        // Resolve marking guide criterion columns now so setup() can be called before any
+        // output. On a download request the column headers use the plain criterion_label
+        // string; on HTML display they use criterion_label_break (which contains a <br />).
+        // flexible_table handles this cleanly: is_downloading() is already set by the time
+        // we build headers here.
+        if ($this->activityid != 0) {
+            $areasql = "SELECT gra.id as areaid FROM {course_modules} cm
+                          JOIN {context} con ON cm.id = con.instanceid
+                          JOIN {grading_areas} gra ON gra.contextid = con.id
+                         WHERE cm.course = ? AND cm.id = ? AND gra.activemethod = ?";
+            $area = $DB->get_record_sql($areasql, [$this->courseid, $this->activityid, 'guide']);
 
-            $xlsxlink = new moodle_url('/grade/report/markingguide/index.php', [
-                'id' => $this->course->id,
-                'activityid' => $this->activityid,
-                'displayremark' => $this->displayremark,
-                'displaysummary' => $this->displaysummary,
-                'displayemail' => $this->displayemail,
-                'displayidnumber' => $this->displayidnumber,
-                'format' => 'excelcsv',
-            ]);
+            if ($area) {
+                $critsql = "SELECT crit.id, crit.shortname, crit.maxscore
+                              FROM {grading_definitions} def
+                              JOIN {gradingform_guide_criteria} crit ON crit.definitionid = def.id
+                             WHERE def.areaid = ?
+                             ORDER BY crit.sortorder";
+                $criteria = $DB->get_records_sql($critsql, [$area->areaid]);
 
-            // Links for download.
-            if ((!$this->csv)) {
-                $output = html_writer::start_tag('ul', ['class' => 'markingguide-actions']);
-                $output .= html_writer::start_tag('li');
-                $output .= html_writer::link($csvlink, get_string('csvdownload', 'gradereport_markingguide'));
-                $output .= '&nbsp;' . $OUTPUT->help_icon('download', 'gradereport_markingguide');
-                $output .= html_writer::end_tag('il');
-                $output .= html_writer::start_tag('li');
-                $output .= html_writer::link($xlsxlink, get_string('excelcsvdownload', 'gradereport_markingguide'));
-                $output .= '&nbsp;' . $OUTPUT->help_icon('download', 'gradereport_markingguide');
-                $output .= html_writer::end_tag('il');
-                $output .= html_writer::end_tag('ul');
-
-                // Put data into table.
-                $output .= $this->display_report($data, $markingguide, false);
-            } else {
-                // Put data into array, not string, for csv download.
-                $output = $this->display_report($data, $markingguide, true);
+                $labelstring = empty($download) ? 'criterion_label_break' : 'criterion_label';
+                foreach ($criteria as $crit) {
+                    $columns[] = 'criterion_' . $crit->id;
+                    $headers[] = get_string($labelstring, 'gradereport_markingguide', (object)[
+                        'crit_desc' => $crit->shortname,
+                        'max_score' => round($crit->maxscore, 2),
+                    ]);
+                }
             }
         }
-        if (!$this->csv) {
-            echo $output;
-        } else {
-            if ($this->excel) {
-                require_once("$CFG->libdir/excellib.class.php");
 
-                $filename = get_string('filename', 'gradereport_markingguide', $this->activityname) . ".xls";
-                $downloadfilename = clean_filename($filename);
-                // Creating a workbook.
-                $workbook = new MoodleExcelWorkbook("-");
-                // Sending HTTP headers.
-                $workbook->send($downloadfilename);
-                // Adding the worksheet.
-                $myxls = $workbook->add_worksheet($filename);
-
-                $row = 0;
-                // Running through data.
-                foreach ($output as $value) {
-                    $col = 0;
-                    foreach ($value as $newvalue) {
-                        $myxls->write_string($row, $col, $newvalue);
-                        $col++;
-                    }
-                    $row++;
-                }
-
-                $workbook->close();
-                exit;
-            } else {
-                require_once($CFG->libdir .'/csvlib.class.php');
-
-                $filename = get_string('filename', 'gradereport_markingguide', $this->activityname);
-                $filename = clean_filename($filename);
-                $csvexport = new csv_export_writer();
-                $csvexport->set_filename($filename);
-
-                foreach ($output as $value) {
-                    $csvexport->add_data($value);
-                }
-                $csvexport->download_file();
-
-                exit;
-            }
+        if ($this->displayremark && $this->displayfeedback) {
+            $columns[] = 'feedback';
+            $headers[] = get_string('feedback', 'gradereport_markingguide');
         }
+        $columns[] = 'grade';
+        $headers[] = get_string('grade', 'gradereport_markingguide');
+
+        $table = new flexible_table('gradereport-markingguide-' . $this->activityid);
+        $table->define_baseurl(new moodle_url('/grade/report/markingguide/index.php', [
+            'id'              => $this->courseid,
+            'activityid'      => $this->activityid,
+            'displayremark'   => (int)$this->displayremark,
+            'displaysummary'  => (int)$this->displaysummary,
+            'displayemail'    => (int)$this->displayemail,
+            'displayidnumber' => (int)$this->displayidnumber,
+        ]));
+        $table->set_attribute('class', 'markingguide generaltable');
+        $table->set_attribute('summary', get_string('pluginname', 'gradereport_markingguide') . ': ' . $this->activityname);
+        $table->sortable(false);
+        $table->collapsible(false);
+        $table->show_download_buttons_at([TABLE_P_BOTTOM]);
+
+        // In Moodle 5.x, is_downloading() is the correct way to both mark the table as
+        // downloadable and signal the active download format. Must be called before setup()
+        // so that is_downloading() returns the format string correctly when index.php checks
+        // it to decide whether to suppress page output.
+        $filename = ($this->activityname ?: 'markingguide') . '_' . $this->courseid;
+        $table->is_downloading($download, $filename, get_string('pluginname', 'gradereport_markingguide'));
+
+        $table->define_columns($columns);
+        $table->define_headers($headers);
+        $table->setup();
+
+        return $table;
     }
 
     /**
-     * Display the table.
+     * Generate and display the marking guide report.
      *
-     * @param array $data
-     * @param array $markingguide
-     * @param bool $csv
-     * @return array|string
+     * @param flexible_table $table Configured table instance from init_table().
+     * @return void
      */
-    private function display_report($data, $markingguide, $csv) {
-        $summaryarray = [];
-        $csvarray = [];
+    public function show(flexible_table $table): void {
+        global $OUTPUT;
 
-        $output = html_writer::start_tag('div', ['class' => 'markingguide']);
-        $table = new html_table();
+        $activityid = $this->activityid;
+        if ($activityid == 0) {
+            return;
+        }
 
-        $table->head = [get_string('student', 'gradereport_markingguide')];
-        // Add the extra fields if needed.
-        if ($this->displayidnumber) {
-            $table->head[] = get_string('studentid', 'gradereport_markingguide');
-        }
-        if ($this->displayemail) {
-            $table->head[] = get_string('studentemail', 'gradereport_markingguide');
-        }
-        foreach ($markingguide as $key => $value) {
-            if ($csv) {
-                $table->head[] = get_string('criterion_label', 'gradereport_markingguide', (object)$value);
-            } else {
-                $table->head[] = get_string('criterion_label_break', 'gradereport_markingguide', (object)$value);
+        $users     = data::get_enrolled($this->courseid);
+        $area      = data::get_grading_areas($activityid, $this->courseid);
+        $markingguide = data::find_marking_guide($area);
+
+        if (empty($users)) {
+            if (!$table->is_downloading()) {
+                echo $OUTPUT->notification(get_string('err_norecords', 'gradereport_markingguide'));
             }
-        }
-        if ($this->displayremark && $this->displayfeedback) {
-            $table->head[] = get_string('feedback', 'gradereport_markingguide');
+            $table->finish_output();
+            return;
         }
 
-        $table->head[] = get_string('grade', 'gradereport_markingguide');
-        $csvarray[] = $table->head;
-        $table->data = [];
+        $this->display_table($table, $users, $markingguide);
+    }
 
-        foreach ($data as $key => $values) {
-            $csvrow = [];
-            $row = new html_table_row();
-            $cell = new html_table_cell();
-            $cell->text = $values[0]; // Student name.
-            $csvrow[] = $values[0];
-            $row->cells[] = $cell;
+    /**
+     * Populate and finish the flexible_table with user data.
+     *
+     * @param flexible_table $table
+     * @param array $users
+     * @param array $markingguide
+     * @return void
+     */
+    private function display_table(flexible_table $table, array $users, array $markingguide): void {
+        $summaryarray = [];
+        $downloading  = $table->is_downloading();
+
+        foreach ($users as $user) {
+            $userdata = data::populate_user_info($user, $this->activityid, $this->courseid);
+            $row = [];
+
+            $row[] = $userdata['fullname'];
 
             if ($this->displayidnumber) {
-                $cell = new html_table_cell();
-                $cell->text = $values[4]; // Student ID number.
-                $row->cells[] = $cell;
-                $csvrow[] = $values[4];
+                $row[] = $user->idnumber;
             }
             if ($this->displayemail) {
-                $cell = new html_table_cell();
-                $cell->text = $values[1]; // Student email.
-                $row->cells[] = $cell;
-                $csvrow[] = $values[1];
+                $row[] = $user->email;
             }
+
             $thisgrade = get_string('nograde', 'gradereport_markingguide');
 
-            if (count($values[2]) == 0) { // Students with no marks, add fillers.
+            if (count($userdata['data']) == 0) {
+                // No marks yet — fill criterion columns with nograde placeholder.
                 foreach ($markingguide as $rkey => $rvalue) {
-                    $cell = new html_table_cell();
-                    $cell->text = get_string('nograde', 'gradereport_markingguide');
-                    $row->cells[] = $cell;
-                    $csvrow[] = $thisgrade;
+                    $row[] = get_string('nograde', 'gradereport_markingguide');
                 }
             }
-            // Handle the marking guide criteria grades.
-            foreach ($values[2] as $value) {
-                $cell = new html_table_cell();
-                $critgrade = get_string('criterion_grade', 'gradereport_markingguide', round($value->score, 2));
-                $cell->text .= "<div class=\"markingguide_marks\">" . $critgrade . "</div>";
-                $csvtext = round($value->score, 2);
 
-                // Display the remark if user asks to.
-                if ($this->displayremark) {
-                    $cell->text .= $value->remark;
-                    $csvtext .= " - ".$value->remark;
+            foreach ($userdata['data'] as $value) {
+                $critgrade = get_string('criterion_grade', 'gradereport_markingguide', round($value->score, 2));
+
+                if ($downloading) {
+                    // Plain text for download: score and optional remark separated by a dash.
+                    $cell = round($value->score, 2);
+                    if ($this->displayremark) {
+                        $cell .= ' - ' . $value->remark;
+                    }
+                } else {
+                    // HTML display: score in a div, remark below if requested.
+                    $cell = '<div class="markingguide_marks">' . $critgrade . '</div>';
+                    if ($this->displayremark) {
+                        $cell .= $value->remark;
+                    }
                 }
-                $row->cells[] = $cell;
-                $thisgrade = round($value->grade, 2); // Grade cell.
+                $row[] = $cell;
+
+                $thisgrade = round($value->grade, 2);
 
                 if (!array_key_exists($value->criterionid, $summaryarray)) {
-                    $summaryarray[$value->criterionid]["sum"] = 0;
-                    $summaryarray[$value->criterionid]["count"] = 0;
+                    $summaryarray[$value->criterionid]['sum']   = 0;
+                    $summaryarray[$value->criterionid]['count'] = 0;
                 }
-                // Sum the grade to for the final column.
-                $summaryarray[$value->criterionid]["sum"] += $value->score;
-                $summaryarray[$value->criterionid]["count"]++;
-
-                $csvrow[] = $csvtext;
+                $summaryarray[$value->criterionid]['sum']   += $value->score;
+                $summaryarray[$value->criterionid]['count']++;
             }
 
             if ($this->displayremark && $this->displayfeedback) {
-                $cell = new html_table_cell();
-
-                if (is_object($values[3]) && (!empty($values[3]->feedback))) {
-                    $cell->text = strip_tags($values[3]->feedback);
-                } // Feedback cell.
-                if (empty($cell->text)) {
-                    $cell->text = get_string('nograde', 'gradereport_markingguide');
+                $feedback = '';
+                if (is_object($userdata['feedback']) && !empty($userdata['feedback']->feedback)) {
+                    $feedback = strip_tags($userdata['feedback']->feedback);
                 }
-                $row->cells[] = $cell;
-                $csvrow[] = $cell->text;
-                $summaryarray["feedback"]["sum"] = get_string('feedback', 'gradereport_markingguide');
+                $row[] = $feedback ?: get_string('nograde', 'gradereport_markingguide');
+                $summaryarray['feedback']['sum'] = get_string('feedback', 'gradereport_markingguide');
             }
 
-            $cell = new html_table_cell();
-            $cell->text = $values[3]->str_grade; // Grade for display.
-            $csvrow[] = $cell->text;
+            $row[] = $userdata['feedback']->str_grade;
 
-            if ($thisgrade != get_string('nograde', 'gradereport_markingguide')) {
-                if (!array_key_exists("grade", $summaryarray)) {
-                    $summaryarray["grade"]["sum"] = 0;
-                    $summaryarray["grade"]["count"] = 0;
+            if ($thisgrade !== get_string('nograde', 'gradereport_markingguide')) {
+                if (!array_key_exists('grade', $summaryarray)) {
+                    $summaryarray['grade']['sum']   = 0;
+                    $summaryarray['grade']['count'] = 0;
                 }
-                $summaryarray["grade"]["sum"] += $thisgrade;
-                $summaryarray["grade"]["count"]++;
+                $summaryarray['grade']['sum']   += $thisgrade;
+                $summaryarray['grade']['count']++;
             }
-            $row->cells[] = $cell;
-            $table->data[] = $row;
-            $csvarray[] = $csvrow;
+
+            $table->add_data($row);
         }
 
         // Summary row.
         if ($this->displaysummary) {
-            $row = new html_table_row();
-            $cell = new html_table_cell();
-            $cell->text = get_string('summary', 'gradereport_markingguide');
-            $row->cells[] = $cell;
-            $csvsummaryrow = [get_string('summary', 'gradereport_markingguide')];
-
-            if ($this->displayidnumber) { // Adding placeholder cells.
-                $cell = new html_table_cell();
-                $cell->text = " ";
-                $row->cells[] = $cell;
-                $csvsummaryrow[] = $cell->text;
+            $summaryrow = [get_string('summary', 'gradereport_markingguide')];
+            if ($this->displayidnumber) {
+                $summaryrow[] = '';
             }
-            if ($this->displayemail) { // Adding placeholder cells.
-                $cell = new html_table_cell();
-                $cell->text = " ";
-                $row->cells[] = $cell;
-                $csvsummaryrow[] = $cell->text;
+            if ($this->displayemail) {
+                $summaryrow[] = '';
             }
-
             foreach ($summaryarray as $sum) {
-                $cell = new html_table_cell();
-                if ($sum["sum"] == get_string('feedback', 'gradereport_markingguide')) {
-                    $cell->text = " ";
+                if ($sum['sum'] === get_string('feedback', 'gradereport_markingguide')) {
+                    $summaryrow[] = '';
                 } else {
-                    $cell->text = round($sum["sum"] / $sum["count"], 2);
+                    $summaryrow[] = round($sum['sum'] / $sum['count'], 2);
                 }
-                $row->cells[] = $cell;
-                $csvsummaryrow[] = $cell->text;
             }
-            $table->data[] = $row;
-            $csvarray[] = $csvsummaryrow;
+            $table->add_data($summaryrow);
         }
 
-        if ($this->csv) {
-            $output = $csvarray;
-        } else {
-            $output .= html_writer::table($table);
-            $output .= html_writer::end_tag('div');
-        }
-
-        return $output;
+        $table->finish_output();
     }
 }

@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Gradebook marking guide report
  *
@@ -20,52 +21,53 @@
  * @copyright  2014 Learning Technology Services, www.lts.ie - Lead Developer: Karen Holland
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
 use gradereport_markingguide\report;
 require_once('../../../config.php');
 require_once($CFG->libdir .'/gradelib.php');
 require_once($CFG->dirroot.'/grade/lib.php');
 require_once("select_form.php");
 
-$activityid = optional_param('activityid', 0, PARAM_INT);
-$displayremark = optional_param('displayremark', 1, PARAM_INT);
-$displaysummary = optional_param('displaysummary', 1, PARAM_INT);
+$activityid      = optional_param('activityid', 0, PARAM_INT);
+$displayremark   = optional_param('displayremark', 1, PARAM_INT);
+$displaysummary  = optional_param('displaysummary', 1, PARAM_INT);
 $displayidnumber = optional_param('displayidnumber', 1, PARAM_INT);
-$displayemail = optional_param('displayemail', 1, PARAM_INT);
-$format = optional_param('format', '', PARAM_ALPHA);
-$courseid = required_param('id', PARAM_INT);// Course id.
+$displayemail    = optional_param('displayemail', 1, PARAM_INT);
+$download        = optional_param('download', '', PARAM_ALPHA); // Set by flexible_table download button.
+$courseid        = required_param('id', PARAM_INT); // Course id.
 
 if (!$course = get_course($courseid)) {
     throw new moodle_exception(get_string('invalidcourseid', 'gradereport_markingguide'));
 }
 
-// CSV format.
-$excel = $format == 'excelcsv';
-$csv = $format == 'csv' || $excel;
-
-if (!$csv) {
-    $PAGE->set_url(new moodle_url('/grade/report/markingguide/index.php', ['id' => $courseid]));
-}
+$PAGE->set_url(new moodle_url('/grade/report/markingguide/index.php', [
+    'id'              => $courseid,
+    'activityid'      => $activityid,
+    'displayremark'   => $displayremark,
+    'displaysummary'  => $displaysummary,
+    'displayidnumber' => $displayidnumber,
+    'displayemail'    => $displayemail,
+]));
 
 require_login($courseid);
-if (!$csv) {
-    $PAGE->set_pagelayout('report');
-}
 
 $context = context_course::instance($course->id);
 
 require_capability('gradereport/markingguide:view', $context);
 
-$activityname = '';
+$activityname    = '';
+$displayfeedback = false;
 
 // Set up the form.
-$mform = new report_markingguide_select_form(null, array('courseid' => $courseid, 'activityid' => $activityid));
+$mform = new report_markingguide_select_form(null, ['courseid' => $courseid, 'activityid' => $activityid]);
 
-// Did we get anything from the form?
-if ($formdata = $mform->get_data()) {
-    // Get the users markingguide.
+// Only process the activity-select form when this is not a flexible_table download request.
+// The download button submits a GET request with a 'download' param; skipping form
+// processing on download requests ensures the request reaches init_table() intact.
+if (empty($download) && ($formdata = $mform->get_data())) {
     $activityid = $formdata->activityid;
     $config = get_config('gradereport_markingguide');
-    if (!$csv && !empty($config->displayurlparams)) {
+    if (!empty($config->displayurlparams)) {
         $fullurl = new moodle_url('/grade/report/markingguide/index.php', (array)$formdata);
         redirect($fullurl);
     }
@@ -74,36 +76,42 @@ if ($formdata = $mform->get_data()) {
 if ($activityid != 0) {
     $cm = get_fast_modinfo($courseid)->cms[$activityid];
     $activityname = format_string($cm->name, true, ['context' => $context]);
-    // Determine whether or not to display general feedback.
     $gradables = report::get_gradables();
     $displayfeedback = $gradables[$cm->modname]['showfeedback'] ?? false;
 }
 
-if (!$csv) {
+$gpr = new grade_plugin_return(['type' => 'report', 'plugin' => 'grader',
+    'courseid' => $courseid]); // Return tracking object.
+$report = new report(
+    $courseid,
+    $gpr,
+    $context,
+    null
+);
+$report->activityid      = $activityid;
+$report->displayremark   = ($displayremark == 1);
+$report->displaysummary  = ($displaysummary == 1);
+$report->displayidnumber = ($displayidnumber == 1);
+$report->displayemail    = ($displayemail == 1);
+$report->activityname    = $activityname;
+$report->displayfeedback = $displayfeedback;
+
+// Initialise the flexible_table early - is_downloading() is then usable before any page
+// HTML is output. Passing $download lets is_downloading() set the format and trigger
+// start_document() (which sends file headers) before setup() or any page output runs.
+$table = $report->init_table($download);
+
+if (!$table->is_downloading()) {
+    $PAGE->set_pagelayout('report');
     print_grade_page_head($COURSE->id, 'report', 'markingguide',
         get_string('pluginname', 'gradereport_markingguide') .
         $OUTPUT->help_icon('pluginname', 'gradereport_markingguide'));
-
-    // Display the form.
     $mform->display();
-
-    grade_regrade_final_grades($courseid); // First make sure we have proper final grades.
+    grade_regrade_final_grades($courseid);
 }
 
-$gpr = new grade_plugin_return(['type' => 'report', 'plugin' => 'grader',
-    'courseid' => $courseid]); // Return tracking object.
-$report = new report($courseid, $gpr, $context); // Initialise the grader report object.
-$report->activityid = $activityid;
-$report->format = $format;
-$report->excel = $format == 'excelcsv';
-$report->csv = $format == 'csv' || $report->excel;
-$report->displayremark = ($displayremark == 1);
-$report->displaysummary = ($displaysummary == 1);
-$report->displayidnumber = ($displayidnumber == 1);
-$report->displayemail = ($displayemail == 1);
-$report->activityname = $activityname;
-$report->displayfeedback = $displayfeedback ?? false;
+$report->show($table);
 
-$table = $report->show();
-echo $table;
-echo $OUTPUT->footer();
+if (!$table->is_downloading()) {
+    echo $OUTPUT->footer();
+}
