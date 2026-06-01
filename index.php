@@ -103,8 +103,12 @@ $table = $report->init_table($download);
 
 if (!$table->is_downloading()) {
     $PAGE->set_pagelayout('report');
-    $actionbar = new \core_grades\output\general_action_bar($context,
-        new moodle_url('/grade/report/markingguide/index.php', ['id' => $courseid]), 'report', 'markingguide');
+    $actionbar = new \core_grades\output\general_action_bar(
+        $context,
+        new moodle_url('/grade/report/markingguide/index.php', ['id' => $courseid]),
+        'report',
+        'markingguide'
+    );
     $label = get_string('pluginname', 'gradereport_markingguide') .
         $OUTPUT->help_icon('pluginname', 'gradereport_markingguide');
     print_grade_page_head($courseid, 'report', 'markingguide', $label, false, false, true, null, null, null, $actionbar);
