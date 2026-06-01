@@ -23,7 +23,7 @@ use moodle_url;
 use gradereport_markingguide\data;
 
 defined('MOODLE_INTERNAL') || die();
-require_once($CFG->dirroot.'/grade/report/lib.php');
+require_once($CFG->dirroot . '/grade/report/lib.php');
 /**
  * Provides the grade report for marking guides.
  *
@@ -253,7 +253,7 @@ class report extends grade_report {
             $thisgrade = get_string('nograde', 'gradereport_markingguide');
 
             if (count($userdata['data']) == 0) {
-                // No marks yet — fill criterion columns with nograde placeholder.
+                // No marks yet - fill criterion columns with nograde placeholder.
                 foreach ($markingguide as $rkey => $rvalue) {
                     $row[] = get_string('nograde', 'gradereport_markingguide');
                 }

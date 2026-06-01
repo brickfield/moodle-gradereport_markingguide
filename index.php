@@ -24,8 +24,8 @@
 
 use gradereport_markingguide\report;
 require_once('../../../config.php');
-require_once($CFG->libdir .'/gradelib.php');
-require_once($CFG->dirroot.'/grade/lib.php');
+require_once($CFG->libdir . '/gradelib.php');
+require_once($CFG->dirroot . '/grade/lib.php');
 require_once("select_form.php");
 
 $activityid      = optional_param('activityid', 0, PARAM_INT);
@@ -103,9 +103,11 @@ $table = $report->init_table($download);
 
 if (!$table->is_downloading()) {
     $PAGE->set_pagelayout('report');
-    print_grade_page_head($COURSE->id, 'report', 'markingguide',
-        get_string('pluginname', 'gradereport_markingguide') .
-        $OUTPUT->help_icon('pluginname', 'gradereport_markingguide'));
+    $actionbar = new \core_grades\output\general_action_bar($context,
+        new moodle_url('/grade/report/markingguide/index.php', ['id' => $courseid]), 'report', 'markingguide');
+    $label = get_string('pluginname', 'gradereport_markingguide') .
+        $OUTPUT->help_icon('pluginname', 'gradereport_markingguide');
+    print_grade_page_head($courseid, 'report', 'markingguide', $label, false, false, true, null, null, null, $actionbar);
     $mform->display();
     grade_regrade_final_grades($courseid);
 }
