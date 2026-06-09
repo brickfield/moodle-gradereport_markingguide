@@ -14,23 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-/**
- * Unit tests for grade/report/markingguide/data.php
- *
- * @package    gradereport_markingguide
- * @copyright  2021 onward Brickfield Education Labs Ltd, https://www.brickfield.ie
- * @author     2021 Clayton Darlington <clayton@brickfieldlabs.ie>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \gradereport_markingguide\data
- */
-
-namespace gradereport_markingguide\phpunit;
+namespace gradereport_markingguide\tests;
 
 use gradereport_markingguide\data;
 
 /**
  * A test class used to test grade_report, the abstract grade report parent class
- */
+ * @package    gradereport_markingguide
+ * @copyright  2021 onward Brickfield Education Labs Ltd, https://www.brickfield.ie
+ * @author     2021 Clayton Darlington <clayton@brickfieldlabs.ie>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \gradereport_markingguide\data
+*/
 final class data_test extends advanced_testcase {
     /**
      * Test get_enrolled function
