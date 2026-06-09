@@ -21,18 +21,21 @@
  * @copyright  2021 onward Brickfield Education Labs Ltd, https://www.brickfield.ie
  * @author     2021 Clayton Darlington <clayton@brickfieldlabs.ie>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \gradereport_markingguide\data
  */
+
+namespace gradereport_markingguide\phpunit;
+
 use gradereport_markingguide\data;
 
 /**
  * A test class used to test grade_report, the abstract grade report parent class
  */
-class data_test extends advanced_testcase {
-
+final class data_test extends advanced_testcase {
     /**
      * Test get_enrolled function
      */
-    public function test_get_enrolled() {
+    public function test_get_enrolled(): void {
         $this->resetAfterTest(true);
         $course = $this->getDataGenerator()->create_course();
         $student1 = $this->getDataGenerator()->create_and_enrol($course);
@@ -46,7 +49,7 @@ class data_test extends advanced_testcase {
     /**
      * Test the get_grade_area function
      */
-    public function test_grading_areas() {
+    public function test_grading_areas(): void {
         $this->resetAfterTest(true);
         global $DB;
 
@@ -59,7 +62,7 @@ class data_test extends advanced_testcase {
         $context = $DB->get_record('context', ['instanceid' => $cm->id]);
 
         // Generate the gradearea directly with the right info.
-        $gradeareadata = new \stdClass;
+        $gradeareadata = new \stdClass();
         $gradeareadata->contextid = $context->id;
         $gradeareadata->component = 'mod_assign';
         $gradeareadata->areaname = 'submissions';
@@ -72,7 +75,7 @@ class data_test extends advanced_testcase {
         $this->assertNotEmpty($data);
     }
 
-    public function test_find_marking_guide() {
+    public function test_find_marking_guide(): void {
         $this->resetAfterTest(true);
 
         global $DB;
@@ -87,7 +90,7 @@ class data_test extends advanced_testcase {
         $context = $DB->get_record('context', ['instanceid' => $cm->id]);
 
         // Generate the gradearea directly with the right info.
-        $gradeareadata = new \stdClass;
+        $gradeareadata = new \stdClass();
         $gradeareadata->contextid = $context->id;
         $gradeareadata->component = 'mod_assign';
         $gradeareadata->areaname = 'submissions';
@@ -99,7 +102,7 @@ class data_test extends advanced_testcase {
         $area = data::get_grading_areas($cm->id, $course->id);
 
         // Generate and store a grading definition for the area.
-        $definition = new \stdClass;
+        $definition = new \stdClass();
         $definition->areaid = $area->areaid;
         $definition->timecreated = time();
         $definition->timemodified = time();
@@ -108,7 +111,7 @@ class data_test extends advanced_testcase {
         $gradingdef = $DB->insert_record('grading_definitions', $definition);
 
         // Generate the guide criteria.
-        $criteria = new \stdClass;
+        $criteria = new \stdClass();
         $criteria->definitionid = $gradingdef;
         $criteria->sortorder = 1;
         $criteria->maxscore = 100;
@@ -122,7 +125,7 @@ class data_test extends advanced_testcase {
     /**
      * Test the populate_user_info function
      */
-    public function test_populate_user_info() {
+    public function test_populate_user_info(): void {
         $this->resetAfterTest();
         global $DB;
 
@@ -133,7 +136,7 @@ class data_test extends advanced_testcase {
         $cm = $DB->get_record('course_modules', ['instance' => $assign->id]);
 
         // Create a grade for the assignment.
-        $assignmentgrade = new \stdClass;
+        $assignmentgrade = new \stdClass();
         $assignmentgrade->assignment = $assign->id;
         $assignmentgrade->userid = $student->id;
         $assignmentgrade->timecreated = time();
@@ -142,7 +145,7 @@ class data_test extends advanced_testcase {
         $assignmentgrade->grade = 100;
         $assignmentgrade = $DB->insert_record('assign_grades', $assignmentgrade);
 
-        $definition = new \stdClass;
+        $definition = new \stdClass();
         $definition->areaid = 1;
         $definition->timecreated = time();
         $definition->timemodified = time();
@@ -150,7 +153,7 @@ class data_test extends advanced_testcase {
         $definition->usermodified = $student->id;
         $gradingdef = $DB->insert_record('grading_definitions', $definition);
 
-        $gradeinstance = new \stdClass;
+        $gradeinstance = new \stdClass();
         $gradeinstance->id = $assign->id;
         $gradeinstance->definitionid = $gradingdef;
         $gradeinstance->raterid = 1;
@@ -159,7 +162,7 @@ class data_test extends advanced_testcase {
         $gradeinstance->timemodified = time();
         $gradeinstance = $DB->insert_record('grading_instances', $gradeinstance);
 
-        $gradefilling = new \stdClass;
+        $gradefilling = new \stdClass();
         $gradefilling->instanceid = $gradeinstance;
         $gradefilling->criterionid = 1;
         $gradefilling->remark = "This is a remark!";
