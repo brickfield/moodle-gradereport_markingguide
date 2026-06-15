@@ -26,7 +26,7 @@ use gradereport_markingguide\report;
 require_once('../../../config.php');
 require_once($CFG->libdir . '/gradelib.php');
 require_once($CFG->dirroot . '/grade/lib.php');
-require_once("select_form.php");
+require_once($CFG->dirroot . '/grade/report/markingguide/select_form.php');
 
 $activityid      = optional_param('activityid', 0, PARAM_INT);
 $displayremark   = optional_param('displayremark', 1, PARAM_INT);

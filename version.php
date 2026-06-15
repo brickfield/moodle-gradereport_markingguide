@@ -24,7 +24,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'gradereport_markingguide';
-$plugin->release = '1.401.02';
-$plugin->version = 2023041703;
-$plugin->requires  = 2022112800; // Moodle 4.1 and higher.
+$plugin->release = '1.401.01';
+$plugin->version = 2026052800;
+$plugin->requires  = 2024100700; // Moodle 4.5 and higher.
 $plugin->maturity  = MATURITY_STABLE;
+$plugin->supported = [405, 502];

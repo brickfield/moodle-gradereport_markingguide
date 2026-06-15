@@ -186,11 +186,13 @@ class report extends grade_report {
         // downloadable and signal the active download format. Must be called before setup()
         // so that is_downloading() returns the format string correctly when index.php checks
         // it to decide whether to suppress page output.
-        $filename = ($this->activityname ?: 'markingguide') . '_' . $this->courseid;
+        $tmpcourse = get_fast_modinfo($this->courseid)->get_course();
+        $filename = clean_filename(($this->activityname ?: 'markingguide') . '_' . $tmpcourse->shortname);
         $table->is_downloading($download, $filename, get_string('pluginname', 'gradereport_markingguide'));
 
         $table->define_columns($columns);
         $table->define_headers($headers);
+        $table->define_header_column('student');
         $table->setup();
 
         return $table;
