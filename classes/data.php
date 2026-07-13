@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 namespace gradereport_markingguide;
 use context_course;
 
@@ -25,7 +26,6 @@ use context_course;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class data {
-
     /** @var array Defines variables for each gradable activity. */
     const GRADABLES = [
         'assign' => ['table' => 'assign_grades', 'field' => 'assignment', 'itemoffset' => 0, 'showfeedback' => 1],
@@ -55,11 +55,12 @@ class data {
     public static function get_grading_areas($activityid, $courseid) {
         global $DB;
 
-        $area = $DB->get_record_sql('select gra.id as areaid from {course_modules} cm'.
-        ' join {context} con on cm.id=con.instanceid'.
-        ' join {grading_areas} gra on gra.contextid = con.id'.
-        ' where cm.course = ? and cm.id = ? and gra.activemethod = ?',
-        [$courseid, $activityid, 'guide']);
+        $sql = 'select gra.id as areaid from {course_modules} cm' .
+            ' join {context} con on cm.id=con.instanceid' .
+            ' join {grading_areas} gra on gra.contextid = con.id' .
+            ' where cm.course = ? and cm.id = ? and gra.activemethod = ?';
+
+        $area = $DB->get_record_sql($sql, [$courseid, $activityid, 'guide']);
 
         return $area;
     }
@@ -76,7 +77,7 @@ class data {
 
         $definitions = $DB->get_records_sql("select * from {grading_definitions} where areaid = ?", [$area->areaid]);
         foreach ($definitions as $def) {
-            $criteria = $DB->get_records_sql("select * from {gradingform_guide_criteria}".
+            $criteria = $DB->get_records_sql("select * from {gradingform_guide_criteria}" .
                 " where definitionid = ? order by sortorder", [$def->id]);
             foreach ($criteria as $crit) {
                 $markingguidearray[$crit->id]['crit_desc'] = $crit->shortname;
@@ -104,18 +105,18 @@ class data {
         // Uses an internal const $GRADABLES for mapping relevant table, field and offset values.
         $activity = get_fast_modinfo($courseid)->cms[$activityid];
 
-        $query = "SELECT ggf.id, gd.id as defid, act.userid, act.grade, ggf.instanceid,".
-            " ggf.criterionid, ggf.remark, ggf.score".
-            " FROM {" . self::GRADABLES[$activity->modname]['table'] . "} act".
-            " JOIN {grading_instances} gin".
-              " ON act.id = gin.itemid".
-            " JOIN {grading_definitions} gd".
-              " ON (gd.id = gin.definitionid )".
-            " JOIN {grading_areas} area".
-              " ON gd.areaid = area.id".
-            " JOIN {gradingform_guide_fillings} ggf".
-              " ON (ggf.instanceid = gin.id)".
-            " WHERE gin.status = ? and act." . self::GRADABLES[$activity->modname]['field'] . " = ?".
+        $query = "SELECT ggf.id, gd.id as defid, act.userid, act.grade, ggf.instanceid," .
+            " ggf.criterionid, ggf.remark, ggf.score" .
+            " FROM {" . self::GRADABLES[$activity->modname]['table'] . "} act" .
+            " JOIN {grading_instances} gin" .
+              " ON act.id = gin.itemid" .
+            " JOIN {grading_definitions} gd" .
+              " ON (gd.id = gin.definitionid )" .
+            " JOIN {grading_areas} area" .
+              " ON gd.areaid = area.id" .
+            " JOIN {gradingform_guide_fillings} ggf" .
+              " ON (ggf.instanceid = gin.id)" .
+            " WHERE gin.status = ? and act." . self::GRADABLES[$activity->modname]['field'] . " = ?" .
               " and act.userid = ? and area.contextid = ?";
 
         $queryarray = [1, $activity->instance, $user->id, $activity->context->id];

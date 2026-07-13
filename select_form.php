@@ -28,7 +28,6 @@ require_once("$CFG->libdir/formslib.php");
  * Generate the selection form for the marking guide
  */
 class report_markingguide_select_form extends moodleform {
-
     /**
      * Define the moodleform and its information
      *
@@ -44,7 +43,7 @@ class report_markingguide_select_form extends moodleform {
                   WHERE cm.course = ? AND gra.activemethod = ?";
         $activities = $DB->get_records_sql($sql, [$this->_customdata['courseid'], 'guide']);
 
-        $formarray = array(0 => get_string('selectactivity', 'gradereport_markingguide'));
+        $formarray = [0 => get_string('selectactivity', 'gradereport_markingguide')];
 
         foreach ($activities as $item) {
             $cm = get_fast_modinfo($this->_customdata['courseid'])->cms[$item->id];
@@ -55,7 +54,7 @@ class report_markingguide_select_form extends moodleform {
 
         // Check for any relevant activities.
         if (count($activities) == 0) {
-            $mform->addElement ('html', get_string('err_noactivities', 'gradereport_markingguide'));
+            $mform->addElement('html', get_string('err_noactivities', 'gradereport_markingguide'));
             return;
         }
 
@@ -66,13 +65,13 @@ class report_markingguide_select_form extends moodleform {
         $mform->addElement('header', 'formheader', get_string('formheader', 'gradereport_markingguide'));
         $mform->setExpanded('formheader', false);
 
-        $mform->addElement ('advcheckbox', 'displayremark', get_string('displayremark', 'gradereport_markingguide'));
+        $mform->addElement('advcheckbox', 'displayremark', get_string('displayremark', 'gradereport_markingguide'));
         $mform->getElement('displayremark')->setValue(1);
-        $mform->addElement ('advcheckbox', 'displaysummary', get_string('displaysummary', 'gradereport_markingguide'));
+        $mform->addElement('advcheckbox', 'displaysummary', get_string('displaysummary', 'gradereport_markingguide'));
         $mform->getElement('displaysummary')->setValue(1);
-        $mform->addElement ('advcheckbox', 'displayemail', get_string('displayemail', 'gradereport_markingguide'));
+        $mform->addElement('advcheckbox', 'displayemail', get_string('displayemail', 'gradereport_markingguide'));
         $mform->getElement('displayemail')->setValue(0);
-        $mform->addElement ('advcheckbox', 'displayidnumber', get_string('displayidnumber', 'gradereport_markingguide'));
+        $mform->addElement('advcheckbox', 'displayidnumber', get_string('displayidnumber', 'gradereport_markingguide'));
         $mform->getElement('displayidnumber')->setValue(0);
         $mform->addElement('hidden', 'id', $this->_customdata['courseid']);
         $mform->setType('id', PARAM_INT);
