@@ -103,7 +103,16 @@ class data {
 
         // Deal with multiple activities enabled for advanced grading.
         // Uses an internal const $GRADABLES for mapping relevant table, field and offset values.
-        $activity = get_fast_modinfo($courseid)->cms[$activityid];
+        // The module is validated before use: an id that names no module in this course, or a
+        // module type absent from GRADABLES, would otherwise build a query with an empty table
+        // name and throw a dml_exception. index.php filters this already, but this method is
+        // public and must not depend on its caller for that.
+        $activity = get_fast_modinfo($courseid)->cms[$activityid] ?? null;
+        if ($activity === null || !array_key_exists($activity->modname, self::GRADABLES)) {
+            $userdata['data'] = [];
+            $userdata['feedback'] = null;
+            return $userdata;
+        }
 
         $query = "SELECT ggf.id, gd.id as defid, act.userid, act.grade, ggf.instanceid," .
             " ggf.criterionid, ggf.remark, ggf.score" .

@@ -153,7 +153,7 @@ class report extends grade_report {
                 foreach ($criteria as $crit) {
                     $columns[] = 'criterion_' . $crit->id;
                     $headers[] = get_string($labelstring, 'gradereport_markingguide', (object)[
-                        'crit_desc' => $crit->shortname,
+                        'crit_desc' => format_string($crit->shortname, true, ['context' => $this->context]),
                         'max_score' => round($crit->maxscore, 2),
                     ]);
                 }
@@ -228,6 +228,43 @@ class report extends grade_report {
     }
 
     /**
+     * Prepare a raw user-supplied value for output in a table cell.
+     *
+     * flexible_table does not escape the content it is given - get_row_cells_html()
+     * passes it to html_writer::tag(), which escapes attributes only - so any value
+     * placed in a cell must be made safe here.
+     *
+     * @param string $value The raw value.
+     * @param bool $downloading Whether the table is being downloaded rather than displayed.
+     * @return string The value, made safe for the relevant output format.
+     */
+    protected function format_cell_value(string $value, bool $downloading): string {
+        if ($downloading) {
+            return self::neutralise_formula($value);
+        }
+        return s($value);
+    }
+
+    /**
+     * Prefix a value with an apostrophe if a spreadsheet would treat it as a formula.
+     *
+     * Excel and LibreOffice evaluate a cell whose first character is =, +, - or @.
+     * The check ignores leading whitespace, because spreadsheets do too - a payload
+     * starting with a space or tab is still evaluated, but would defeat a naive test
+     * of the first character.
+     *
+     * @param string $value The cell value.
+     * @return string The value, prefixed if it would otherwise be evaluated.
+     */
+    protected static function neutralise_formula(string $value): string {
+        $trimmed = ltrim($value);
+        if ($trimmed !== '' && strpos('=+-@', $trimmed[0]) !== false) {
+            return "'" . $value;
+        }
+        return $value;
+    }
+
+    /**
      * Populate and finish the flexible_table with user data.
      *
      * @param flexible_table $table
@@ -243,22 +280,20 @@ class report extends grade_report {
             $userdata = data::populate_user_info($user, $this->activityid, $this->courseid);
             $row = [];
 
-            $row[] = $userdata['fullname'];
+            $row[] = $this->format_cell_value((string)$userdata['fullname'], $downloading);
 
             if ($this->displayidnumber) {
-                $row[] = $user->idnumber;
+                $row[] = $this->format_cell_value((string)$user->idnumber, $downloading);
             }
             if ($this->displayemail) {
-                $row[] = $user->email;
+                $row[] = $this->format_cell_value((string)$user->email, $downloading);
             }
 
             $thisgrade = get_string('nograde', 'gradereport_markingguide');
 
             if (count($userdata['data']) == 0) {
                 // No marks yet - fill criterion columns with nograde placeholder.
-                foreach ($markingguide as $rkey => $rvalue) {
-                    $row[] = get_string('nograde', 'gradereport_markingguide');
-                }
+                $row = array_merge($row, array_fill(0, count($markingguide), $thisgrade));
             }
 
             foreach ($userdata['data'] as $value) {
@@ -266,15 +301,20 @@ class report extends grade_report {
 
                 if ($downloading) {
                     // Plain text for download: score and optional remark separated by a dash.
-                    $cell = round($value->score, 2);
+                    // Tags are stripped from the remark, as download_help documents. The
+                    // formula check is applied to the assembled cell rather than to the
+                    // remark alone: a spreadsheet evaluates a cell based on its own first
+                    // character, so neutralising a value that lands mid-cell does nothing.
+                    $cell = (string)round($value->score, 2);
                     if ($this->displayremark) {
-                        $cell .= ' - ' . $value->remark;
+                        $cell .= ' - ' . strip_tags($value->remark);
                     }
+                    $cell = self::neutralise_formula($cell);
                 } else {
                     // HTML display: score in a div, remark below if requested.
                     $cell = '<div class="markingguide_marks">' . $critgrade . '</div>';
                     if ($this->displayremark) {
-                        $cell .= $value->remark;
+                        $cell .= s($value->remark);
                     }
                 }
                 $row[] = $cell;
@@ -292,13 +332,26 @@ class report extends grade_report {
             if ($this->displayremark && $this->displayfeedback) {
                 $feedback = '';
                 if (is_object($userdata['feedback']) && !empty($userdata['feedback']->feedback)) {
+                    // Stripping tags is sufficient for the HTML path - the value is cell text,
+                    // not an attribute, so with no tags left there is nothing to execute. It is
+                    // deliberately not passed through s() as well, because the source is
+                    // FORMAT_HTML and double-encoding would display raw entities to the user.
                     $feedback = strip_tags($userdata['feedback']->feedback);
+                    if ($downloading) {
+                        $feedback = self::neutralise_formula($feedback);
+                    }
                 }
                 $row[] = $feedback ?: get_string('nograde', 'gradereport_markingguide');
                 $summaryarray['feedback']['sum'] = get_string('feedback', 'gradereport_markingguide');
             }
 
-            $row[] = $userdata['feedback']->str_grade;
+            // A null feedback object comes back from populate_user_info() when the activity
+            // has no grade item for this user, so the grade string is guarded, not assumed.
+            // The str_grade value is already formatted by core (format_string is applied to
+            // scale names), so it is passed through unescaped to avoid double-encoding.
+            $row[] = is_object($userdata['feedback'])
+                ? $userdata['feedback']->str_grade
+                : get_string('nograde', 'gradereport_markingguide');
 
             if ($thisgrade !== get_string('nograde', 'gradereport_markingguide')) {
                 if (!array_key_exists('grade', $summaryarray)) {

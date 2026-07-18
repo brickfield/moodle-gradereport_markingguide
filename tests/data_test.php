@@ -17,6 +17,7 @@
 namespace gradereport_markingguide;
 
 use gradereport_markingguide\data;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * A test class used to test grade_report, the abstract grade report parent class
@@ -24,8 +25,8 @@ use gradereport_markingguide\data;
  * @copyright  2021 onward Brickfield Education Labs Ltd, https://www.brickfield.ie
  * @author     2021 Clayton Darlington <clayton@brickfieldlabs.ie>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \gradereport_markingguide\data
  */
+#[CoversClass(data::class)]
 final class data_test extends \advanced_testcase {
     /**
      * Test that GRADABLES defines the expected activity types with required keys.
@@ -55,7 +56,7 @@ final class data_test extends \advanced_testcase {
         $course = $this->getDataGenerator()->create_course();
         $student1 = $this->getDataGenerator()->create_and_enrol($course);
         $student2 = $this->getDataGenerator()->create_and_enrol($course);
-        $student3 = $this->getDataGenerator()->create_and_enrol($course);
+        $this->getDataGenerator()->create_and_enrol($course);
 
         $enrolled = data::get_enrolled($course->id);
         $this->assertNotEmpty($enrolled, 'Enrolled students must be returned');
@@ -104,7 +105,7 @@ final class data_test extends \advanced_testcase {
         $gradeareadata->areaname = 'submissions';
         $gradeareadata->activemethod = 'guide';
 
-        $gradearea = $DB->insert_record('grading_areas', $gradeareadata);
+        $DB->insert_record('grading_areas', $gradeareadata);
 
         // Find the grade area.
         $data = data::get_grading_areas($cm->id, $course->id);
@@ -133,7 +134,7 @@ final class data_test extends \advanced_testcase {
         $gradeareadata->areaname = 'submissions';
         $gradeareadata->activemethod = 'guide';
 
-        $gradearea = $DB->insert_record('grading_areas', $gradeareadata);
+        $DB->insert_record('grading_areas', $gradeareadata);
 
         // Find the grade area.
         $area = data::get_grading_areas($cm->id, $course->id);
@@ -153,7 +154,7 @@ final class data_test extends \advanced_testcase {
         $criteria->sortorder = 1;
         $criteria->maxscore = 100;
         $criteria->shortname = "This is a temp shortname";
-        $criteriarecord = $DB->insert_record('gradingform_guide_criteria', $criteria);
+        $DB->insert_record('gradingform_guide_criteria', $criteria);
 
         $markingguides = data::find_marking_guide($area);
         $this->assertNotEmpty($markingguides);
@@ -266,14 +267,14 @@ final class data_test extends \advanced_testcase {
         ]);
 
         // Insert two criteria with levels.
-        $crit1id = $DB->insert_record('gradingform_guide_criteria', (object)[
+        $DB->insert_record('gradingform_guide_criteria', (object)[
             'definitionid' => $definitionid,
             'sortorder'    => 1,
             'description'  => 'Criterion One',
             'descriptionformat' => FORMAT_HTML,
             'maxscore' => 40,
         ]);
-        $crit2id = $DB->insert_record('gradingform_guide_criteria', (object)[
+        $DB->insert_record('gradingform_guide_criteria', (object)[
             'definitionid' => $definitionid,
             'sortorder'    => 2,
             'description'  => 'Criterion Two',

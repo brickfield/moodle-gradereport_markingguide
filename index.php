@@ -74,10 +74,15 @@ if (empty($download) && ($formdata = $mform->get_data())) {
 }
 
 if ($activityid != 0) {
-    $cm = get_fast_modinfo($courseid)->cms[$activityid];
-    $activityname = format_string($cm->name, true, ['context' => $context]);
+    $cm = get_fast_modinfo($courseid)->cms[$activityid] ?? null;
     $gradables = report::get_gradables();
-    $displayfeedback = $gradables[$cm->modname]['showfeedback'] ?? false;
+    if ($cm === null || !array_key_exists($cm->modname, $gradables)) {
+        // Unknown or non-gradable activity - fall back to no activity selected.
+        $activityid = 0;
+    } else {
+        $activityname = format_string($cm->name, true, ['context' => $context]);
+        $displayfeedback = $gradables[$cm->modname]['showfeedback'] ?? false;
+    }
 }
 
 $gpr = new grade_plugin_return(['type' => 'report', 'plugin' => 'grader',
