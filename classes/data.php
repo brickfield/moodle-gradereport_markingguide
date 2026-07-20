@@ -56,11 +56,11 @@ class data {
         global $DB;
 
         $sql = 'select gra.id as areaid from {course_modules} cm' .
-            ' join {context} con on cm.id=con.instanceid' .
+            ' join {context} con on cm.id=con.instanceid AND con.contextlevel = ?' .
             ' join {grading_areas} gra on gra.contextid = con.id' .
             ' where cm.course = ? and cm.id = ? and gra.activemethod = ?';
 
-        $area = $DB->get_record_sql($sql, [$courseid, $activityid, 'guide']);
+        $area = $DB->get_record_sql($sql, [CONTEXT_MODULE, $courseid, $activityid, 'guide']);
 
         return $area;
     }
@@ -103,7 +103,13 @@ class data {
 
         // Deal with multiple activities enabled for advanced grading.
         // Uses an internal const $GRADABLES for mapping relevant table, field and offset values.
-        $activity = get_fast_modinfo($courseid)->cms[$activityid];
+        // Validation of activity ID before use.
+        $activity = get_fast_modinfo($courseid)->cms[$activityid] ?? null;
+        if ($activity === null || !array_key_exists($activity->modname, self::GRADABLES)) {
+            $userdata['data'] = [];
+            $userdata['feedback'] = null;
+            return $userdata;
+        }
 
         $query = "SELECT ggf.id, gd.id as defid, act.userid, act.grade, ggf.instanceid," .
             " ggf.criterionid, ggf.remark, ggf.score" .

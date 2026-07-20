@@ -25,7 +25,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
     'gradereport/markingguide:view' => [
-        'riskbitmask' => '',
+        'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes' => [

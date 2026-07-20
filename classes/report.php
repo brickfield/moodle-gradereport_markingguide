@@ -101,15 +101,6 @@ class report extends grade_report {
     /**
      * Initialise, configure, and set up the flexible_table instance.
      *
-     * Resolves the full column list - including dynamic marking guide criterion columns -
-     * and calls is_downloading() then setup() before returning. This means is_downloading()
-     * is usable immediately after this call, allowing index.php to suppress page HTML on
-     * download requests before any output is sent.
-     *
-     * In Moodle 5.x, setup() no longer reads the download param from the request.
-     * is_downloading() must be called explicitly with the format string before setup() so
-     * that is_downloading() returns the format correctly when index.php checks it.
-     *
      * @param string $download Download format string from the request (e.g. 'csv', 'excel').
      *                         Empty string means no download this request.
      * @return flexible_table
@@ -129,11 +120,7 @@ class report extends grade_report {
             $headers[] = get_string('studentemail', 'gradereport_markingguide');
         }
 
-        // Resolve marking guide criterion columns now so setup() can be called before any
-        // output. On a download request the column headers use the plain criterion_label
-        // string; on HTML display they use criterion_label_break (which contains a <br />).
-        // flexible_table handles this cleanly: is_downloading() is already set by the time
-        // we build headers here.
+        // Building criterion columns.
         if ($this->activityid != 0) {
             $areasql = "SELECT gra.id as areaid FROM {course_modules} cm
                           JOIN {context} con ON cm.id = con.instanceid
@@ -153,7 +140,7 @@ class report extends grade_report {
                 foreach ($criteria as $crit) {
                     $columns[] = 'criterion_' . $crit->id;
                     $headers[] = get_string($labelstring, 'gradereport_markingguide', (object)[
-                        'crit_desc' => $crit->shortname,
+                        'crit_desc' => format_string($crit->shortname, true, ['context' => $this->context]),
                         'max_score' => round($crit->maxscore, 2),
                     ]);
                 }
@@ -182,10 +169,7 @@ class report extends grade_report {
         $table->collapsible(false);
         $table->show_download_buttons_at([TABLE_P_BOTTOM]);
 
-        // In Moodle 5.x, is_downloading() is the correct way to both mark the table as
-        // downloadable and signal the active download format. Must be called before setup()
-        // so that is_downloading() returns the format string correctly when index.php checks
-        // it to decide whether to suppress page output.
+        // Check status of page, is_downloading() or not.
         $tmpcourse = get_fast_modinfo($this->courseid)->get_course();
         $filename = clean_filename(($this->activityname ?: 'markingguide') . '_' . $tmpcourse->shortname);
         $table->is_downloading($download, $filename, get_string('pluginname', 'gradereport_markingguide'));
@@ -228,6 +212,34 @@ class report extends grade_report {
     }
 
     /**
+     * Prepare a raw user-supplied value for output in a table cell.
+     *
+     * @param string $value The raw value.
+     * @param bool $downloading Whether the table is being downloaded rather than displayed.
+     * @return string The value, made safe for the relevant output format.
+     */
+    protected function format_cell_value(string $value, bool $downloading): string {
+        if ($downloading) {
+            return self::neutralise_formula($value);
+        }
+        return s($value);
+    }
+
+    /**
+     * Prefix a value with an apostrophe in case a spreadsheet would treat it as a formula.
+     *
+     * @param string $value The cell value.
+     * @return string The value, prefixed if it would otherwise be evaluated.
+     */
+    protected static function neutralise_formula(string $value): string {
+        $trimmed = ltrim($value);
+        if ($trimmed !== '' && strpos('=+-@', $trimmed[0]) !== false) {
+            return "'" . $value;
+        }
+        return $value;
+    }
+
+    /**
      * Populate and finish the flexible_table with user data.
      *
      * @param flexible_table $table
@@ -243,38 +255,38 @@ class report extends grade_report {
             $userdata = data::populate_user_info($user, $this->activityid, $this->courseid);
             $row = [];
 
-            $row[] = $userdata['fullname'];
+            $row[] = $this->format_cell_value((string)$userdata['fullname'], $downloading);
 
             if ($this->displayidnumber) {
-                $row[] = $user->idnumber;
+                $row[] = $this->format_cell_value((string)$user->idnumber, $downloading);
             }
             if ($this->displayemail) {
-                $row[] = $user->email;
+                $row[] = $this->format_cell_value((string)$user->email, $downloading);
             }
 
             $thisgrade = get_string('nograde', 'gradereport_markingguide');
 
             if (count($userdata['data']) == 0) {
                 // No marks yet - fill criterion columns with nograde placeholder.
-                foreach ($markingguide as $rkey => $rvalue) {
-                    $row[] = get_string('nograde', 'gradereport_markingguide');
-                }
+                $row = array_merge($row, array_fill(0, count($markingguide), $thisgrade));
             }
 
             foreach ($userdata['data'] as $value) {
                 $critgrade = get_string('criterion_grade', 'gradereport_markingguide', round($value->score, 2));
 
                 if ($downloading) {
-                    // Plain text for download: score and optional remark separated by a dash.
-                    $cell = round($value->score, 2);
+                    // Display the remark if user asks to.
+                    // Stripping tags, not passed through s(), for correct display.
+                    $cell = (string)round($value->score, 2);
                     if ($this->displayremark) {
-                        $cell .= ' - ' . $value->remark;
+                        $cell .= ' - ' . strip_tags($value->remark);
                     }
+                    $cell = self::neutralise_formula($cell);
                 } else {
                     // HTML display: score in a div, remark below if requested.
                     $cell = '<div class="markingguide_marks">' . $critgrade . '</div>';
                     if ($this->displayremark) {
-                        $cell .= $value->remark;
+                        $cell .= s($value->remark);
                     }
                 }
                 $row[] = $cell;
@@ -292,13 +304,23 @@ class report extends grade_report {
             if ($this->displayremark && $this->displayfeedback) {
                 $feedback = '';
                 if (is_object($userdata['feedback']) && !empty($userdata['feedback']->feedback)) {
+                    // Stripping tags, not passed through s(), for correct display.
                     $feedback = strip_tags($userdata['feedback']->feedback);
+                    if ($downloading) {
+                        $feedback = self::neutralise_formula($feedback);
+                    }
                 }
                 $row[] = $feedback ?: get_string('nograde', 'gradereport_markingguide');
                 $summaryarray['feedback']['sum'] = get_string('feedback', 'gradereport_markingguide');
             }
 
-            $row[] = $userdata['feedback']->str_grade;
+            // A null feedback object comes back from populate_user_info() when the activity
+            // has no grade item for this user, so the grade string is guarded, not assumed.
+            // The str_grade value is already formatted by core (format_string is applied to
+            // scale names), so it is passed through unescaped to avoid double-encoding.
+            $row[] = is_object($userdata['feedback'])
+                ? $userdata['feedback']->str_grade
+                : get_string('nograde', 'gradereport_markingguide');
 
             if ($thisgrade !== get_string('nograde', 'gradereport_markingguide')) {
                 if (!array_key_exists('grade', $summaryarray)) {
