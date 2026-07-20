@@ -61,9 +61,7 @@ $displayfeedback = false;
 // Set up the form.
 $mform = new report_markingguide_select_form(null, ['courseid' => $courseid, 'activityid' => $activityid]);
 
-// Only process the activity-select form when this is not a flexible_table download request.
-// The download button submits a GET request with a 'download' param; skipping form
-// processing on download requests ensures the request reaches init_table() intact.
+// Only process the activity-select form when not a download request.
 if (empty($download) && ($formdata = $mform->get_data())) {
     $activityid = $formdata->activityid;
     $config = get_config('gradereport_markingguide');
@@ -74,10 +72,15 @@ if (empty($download) && ($formdata = $mform->get_data())) {
 }
 
 if ($activityid != 0) {
-    $cm = get_fast_modinfo($courseid)->cms[$activityid];
-    $activityname = format_string($cm->name, true, ['context' => $context]);
+    $cm = get_fast_modinfo($courseid)->cms[$activityid] ?? null;
     $gradables = report::get_gradables();
-    $displayfeedback = $gradables[$cm->modname]['showfeedback'] ?? false;
+    if ($cm === null || !array_key_exists($cm->modname, $gradables)) {
+        // Unknown or non-gradable activity - fall back to no activity selected.
+        $activityid = 0;
+    } else {
+        $activityname = format_string($cm->name, true, ['context' => $context]);
+        $displayfeedback = $gradables[$cm->modname]['showfeedback'] ?? false;
+    }
 }
 
 $gpr = new grade_plugin_return(['type' => 'report', 'plugin' => 'grader',
@@ -96,9 +99,7 @@ $report->displayemail    = ($displayemail == 1);
 $report->activityname    = $activityname;
 $report->displayfeedback = $displayfeedback;
 
-// Initialise the flexible_table early - is_downloading() is then usable before any page
-// HTML is output. Passing $download lets is_downloading() set the format and trigger
-// start_document() (which sends file headers) before setup() or any page output runs.
+// Initialising flexible_table early so it can send download headers before any output.
 $table = $report->init_table($download);
 
 if (!$table->is_downloading()) {

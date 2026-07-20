@@ -38,10 +38,10 @@ class report_markingguide_select_form extends moodleform {
 
         $sql = "SELECT cm.id, cm.course, con.id AS con_id, con.path, gra.id AS gra_id
                   FROM {course_modules} cm
-                  JOIN {context} con ON cm.id=con.instanceid
+                  JOIN {context} con ON cm.id=con.instanceid AND con.contextlevel = ?
                   JOIN {grading_areas} gra ON gra.contextid = con.id
                   WHERE cm.course = ? AND gra.activemethod = ?";
-        $activities = $DB->get_records_sql($sql, [$this->_customdata['courseid'], 'guide']);
+        $activities = $DB->get_records_sql($sql, [CONTEXT_MODULE, $this->_customdata['courseid'], 'guide']);
 
         $formarray = [0 => get_string('selectactivity', 'gradereport_markingguide')];
 

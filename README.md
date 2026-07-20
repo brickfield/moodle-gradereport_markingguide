@@ -4,7 +4,7 @@ Copyright (C) 2026 [Brickfield Education Labs](https://www.brickfield.ie/)
 ## What is the Marking Guide Report?
 The Marking Guide report is a grade report plugin for Moodle that gives teachers a complete view of marking guide grading results for all students in a course, in a single table.​
 
-For each marking guide-graded activity, the report shows every marking guide criterion as a column, with each student's score, level description, and remark per criterion, plus their overall grade. The table is downloadable as CSV or Excel.
+For each marking guide-graded activity, the report shows every marking guide criterion as a column, with each student's score, level description, and remark per criterion, plus their overall grade. The table is also downloadable.
 
 This supports standardised grading by providing this overview of all grades and students in one report.
 
