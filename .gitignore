@@ -1,0 +1,25 @@
+# Machine-specific Claude Code harness config.
+# Paths differ per developer machine and must not be committed.
+# See .claude/README.md — created from .claude/mci-config.example.md during setup.
+.claude/mci-config.md
+
+# Dependencies
+/node_modules/
+/vendor/
+
+# PHPUnit
+.phpunit.result.cache
+/.phpunit.cache/
+
+# Packaging output
+/*.zip
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db

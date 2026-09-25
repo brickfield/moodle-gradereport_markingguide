@@ -118,12 +118,15 @@ class data {
               " ON act.id = gin.itemid" .
             " JOIN {grading_definitions} gd" .
               " ON (gd.id = gin.definitionid )" .
+            " JOIN {gradingform_guide_criteria} crit" .
+              " ON (gd.id = crit.definitionid )" .
             " JOIN {grading_areas} area" .
               " ON gd.areaid = area.id" .
             " JOIN {gradingform_guide_fillings} ggf" .
-              " ON (ggf.instanceid = gin.id)" .
-            " WHERE gin.status = ? and act." . self::GRADABLES[$activity->modname]['field'] . " = ?" .
-              " and act.userid = ? and area.contextid = ?";
+              " ON (ggf.instanceid = gin.id AND ggf.criterionid = crit.id)" .
+            " WHERE gin.status = ? AND act." . self::GRADABLES[$activity->modname]['field'] . " = ?" .
+              " AND act.userid = ? AND area.contextid = ?
+              ORDER BY crit.sortorder ASC";
 
         $queryarray = [1, $activity->instance, $user->id, $activity->context->id];
         $userdata['data'] = $DB->get_records_sql($query, $queryarray);

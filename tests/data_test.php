@@ -19,14 +19,15 @@ namespace gradereport_markingguide;
 use gradereport_markingguide\data;
 use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(data::class)]
 /**
  * A test class used to test grade_report, the abstract grade report parent class
  * @package    gradereport_markingguide
  * @copyright  2021 onward Brickfield Education Labs Ltd, https://www.brickfield.ie
  * @author     2021 Clayton Darlington <clayton@brickfieldlabs.ie>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \gradereport_markingguide\data
  */
-#[CoversClass(data::class)]
 final class data_test extends \advanced_testcase {
     /**
      * Test that GRADABLES defines the expected activity types with required keys.
