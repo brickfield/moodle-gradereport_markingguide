@@ -21,6 +21,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use ReflectionMethod;
 
+#[CoversClass(report::class)]
 /**
  * Tests for the cell-safety helpers on the marking guide report.
  *
@@ -31,8 +32,8 @@ use ReflectionMethod;
  * @package    gradereport_markingguide
  * @copyright  2026 onward Brickfield Education Labs Ltd, https://www.brickfield.ie
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers     \gradereport_markingguide\report
  */
-#[CoversClass(report::class)]
 final class report_test extends \advanced_testcase {
     /**
      * Call the protected static neutralise_formula() helper.
@@ -89,6 +90,7 @@ final class report_test extends \advanced_testcase {
     /**
      * Test that only values a spreadsheet would evaluate get the apostrophe prefix.
      *
+     * @dataProvider formula_provider
      * @param string $value The cell value.
      * @param bool $expectprefix Whether the value should be prefixed.
      */
